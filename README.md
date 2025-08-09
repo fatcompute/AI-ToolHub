@@ -9,26 +9,63 @@ This project contains a containerized web application for interacting with and m
 
 ## How to Run
 
-1.  **Start the application stack:**
-    Open your terminal in the root of this project and run:
-    ```bash
+The following instructions explain how to get the application running. The core `docker-compose` commands are the same across platforms, but the terminal setup may differ.
+
+### With Docker Desktop (Windows/macOS)
+
+1.  **Open your terminal:**
+    - On **Windows**, open PowerShell or Command Prompt.
+    - On **macOS**, open the Terminal app.
+
+2.  **Navigate to the project directory:**
+    Use the `cd` command to change to the folder where you cloned this repository.
+    ```sh
+    cd path/to/ai-toolkit
+    ```
+
+3.  **Start the application:**
+    Run the following command to build the Docker images and start all services.
+    ```sh
     docker-compose up --build
     ```
-    This command will build the Docker images for the frontend and backend services and start all three services (frontend, backend, and Ollama).
+    You will see logs from all services in this terminal window.
 
-2.  **Access the application:**
-    - The frontend dashboard is available at [http://localhost:3000](http://localhost:3000).
-    - The backend API is available at [http://localhost:8000](http://localhost:8000).
-
-3.  **Download an LLM:**
-    The application uses Ollama to run local LLMs. Before you can use the chat or code generation features, you need to pull a model. Open a new terminal window and run the following command:
-    ```bash
+4.  **Download a model:**
+    Open a **second, new terminal window** and navigate to the same project directory. Run the `exec` command to get a shell inside the Ollama container and pull a model.
+    ```sh
     docker-compose exec ollama ollama run llama3:8b
     ```
-    You can replace `llama3:8b` with any other model from the [Ollama library](https://ollama.com/library). The model will be downloaded and stored in a Docker volume, so it will persist across sessions.
+    This will download the `llama3:8b` model. You can replace this with any other model from the [Ollama library](https://ollama.com/library).
 
-4.  **Start using the application:**
-    Once the model is downloaded, refresh the dashboard. The new model should appear in the "Select Active Model" dropdown. You can now start chatting with it or generating code.
+5.  **Access the Dashboard:**
+    Once the model is downloaded, open your web browser and go to [http://localhost:3000](http://localhost:3000). The new model should appear in the "Select Active Model" dropdown.
+
+### With WSL (Windows Subsystem for Linux)
+
+If you have Docker Desktop installed with the WSL 2 backend, you can run all commands from your WSL terminal.
+
+1.  **Open your WSL terminal** (e.g., Ubuntu).
+
+2.  **Navigate to the project directory:**
+    Your Windows file system is typically mounted under `/mnt/`. For example:
+    ```sh
+    cd /mnt/c/Users/YourName/path/to/ai-toolkit
+    ```
+
+3.  **Start the application:**
+    The command is the same as above.
+    ```sh
+    docker-compose up --build
+    ```
+
+4.  **Download a model:**
+    Open a **new WSL terminal tab or window**, navigate to the same project directory, and run:
+    ```sh
+    docker-compose exec ollama ollama run llama3:8b
+    ```
+
+5.  **Access the Dashboard:**
+    Open your web browser on Windows and go to [http://localhost:3000](http://localhost:3000).
 
 ---
 
