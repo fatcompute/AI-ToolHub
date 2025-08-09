@@ -1,4 +1,10 @@
-fastapi
-uvicorn[standard]
+Flask
+Flask-SQLAlchemy
+Flask-Cors
 python-dotenv
-requests
+transformers
+torch
+huggingface_hub
+accelerate
+Flask-Migrate
+psycopg2-binary
