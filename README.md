@@ -1,3 +1,37 @@
+# AI Toolkit Web Application
+
+This project contains a containerized web application for interacting with and managing local Large Language Models (LLMs). It features a dashboard for chatting with models and a code generation tool with a live preview.
+
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+## How to Run
+
+1.  **Start the application stack:**
+    Open your terminal in the root of this project and run:
+    ```bash
+    docker-compose up --build
+    ```
+    This command will build the Docker images for the frontend and backend services and start all three services (frontend, backend, and Ollama).
+
+2.  **Access the application:**
+    - The frontend dashboard is available at [http://localhost:3000](http://localhost:3000).
+    - The backend API is available at [http://localhost:8000](http://localhost:8000).
+
+3.  **Download an LLM:**
+    The application uses Ollama to run local LLMs. Before you can use the chat or code generation features, you need to pull a model. Open a new terminal window and run the following command:
+    ```bash
+    docker-compose exec ollama ollama run llama3:8b
+    ```
+    You can replace `llama3:8b` with any other model from the [Ollama library](https://ollama.com/library). The model will be downloaded and stored in a Docker volume, so it will persist across sessions.
+
+4.  **Start using the application:**
+    Once the model is downloaded, refresh the dashboard. The new model should appear in the "Select Active Model" dropdown. You can now start chatting with it or generating code.
+
+---
+
 # AI-Toolkit
 AI-Toolkit Awesome AI Tools
 
