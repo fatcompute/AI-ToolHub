@@ -146,10 +146,10 @@ finalize_setup() {
     # The FLASK_APP is set in the .env file
     (
         cd $APP_DIR/backend &&
-        source venv/bin/activate &&
-        flask db init &&
-        flask db migrate -m "Initial setup" &&
-        flask db upgrade
+        # Use the full path to the flask executable in the venv
+        venv/bin/flask db init &&
+        venv/bin/flask db migrate -m "Initial setup" &&
+        venv/bin/flask db upgrade
     )
 
     echo "Enabling Apache site and modules..."
