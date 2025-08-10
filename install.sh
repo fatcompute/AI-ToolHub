@@ -92,6 +92,9 @@ setup_application() {
     echo "Setting up Python virtual environment..."
     python3 -m venv $APP_DIR/backend/venv
 
+    echo "Ensuring virtual environment scripts are executable..."
+    chmod +x $APP_DIR/backend/venv/bin/*
+
     echo "Installing Python dependencies..."
     $APP_DIR/backend/venv/bin/pip install -r $APP_DIR/backend/requirements.txt
 
