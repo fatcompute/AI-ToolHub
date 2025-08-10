@@ -34,9 +34,32 @@ This platform is perfect for developers, researchers, and AI enthusiasts who wan
 
 ## 4. Deployment Guide (Ubuntu Server)
 
-This guide walks you through deploying the AI Toolkit on a fresh Ubuntu Server.
+### 4.1. Automated Installation (Recommended)
 
-### 4.1. Prerequisites
+For a fast and easy setup, you can use the interactive installation script. This is the recommended method for most users.
+
+1.  **Clone the Repository:**
+    ```bash
+    # Replace with your repository URL
+    git clone https://github.com/your-repo/ai-toolkit.git
+    cd ai-toolkit
+    ```
+2.  **Make the Script Executable:**
+    ```bash
+    chmod +x install.sh
+    ```
+3.  **Run the Script:**
+    Run the script with `sudo`. It will prompt you for all the necessary configuration details.
+    ```bash
+    sudo ./install.sh
+    ```
+    Follow the on-screen prompts, and the script will handle the rest of the setup process automatically.
+
+### 4.2. Manual Installation Guide
+
+For users who prefer to set up the application step-by-step, or for troubleshooting, follow this detailed guide.
+
+#### 4.2.1. Prerequisites
 
 - An Ubuntu Server (20.04 or later recommended).
 - A user with `sudo` privileges.
