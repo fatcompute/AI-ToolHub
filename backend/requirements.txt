@@ -1,0 +1,10 @@
+Flask
+Flask-SQLAlchemy
+Flask-Cors
+python-dotenv
+transformers
+torch
+huggingface_hub
+accelerate
+Flask-Migrate
+psycopg2-binary

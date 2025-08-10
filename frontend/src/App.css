@@ -1,0 +1,276 @@
+/* General App Layout */
+.App {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #1a1a1a; /* Dark background */
+  color: #f0f0f0; /* Light text */
+}
+
+/* Header */
+.App-header {
+  background-color: #242424;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #333;
+  text-align: center;
+}
+
+.App-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #61dafb; /* React blue for a splash of color */
+}
+
+/* Main Content */
+.App-main {
+  flex-grow: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* General UI Elements */
+h2 {
+  color: #61dafb;
+  border-bottom: 2px solid #61dafb;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+button {
+  background-color: #61dafb;
+  color: #1a1a1a;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #88e1fc;
+}
+
+button:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background-color: #242424;
+  color: #f0f0f0;
+  font-size: 1rem;
+}
+
+textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background-color: #242424;
+  color: #f0f0f0;
+  font-size: 1rem;
+  min-height: 100px;
+  resize: vertical;
+}
+
+.error-message {
+  color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.1);
+  border: 1px solid #ff6b6b;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.loading-message {
+  color: #61dafb;
+}
+
+/* Specific Component Styles */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+}
+
+.model-management, .chat-interface {
+  background-color: #242424;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.model-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.model-list-item {
+  padding: 0.75rem;
+  border-bottom: 1px solid #333;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.model-list-item:last-child {
+  border-bottom: none;
+}
+
+.model-list-item:hover {
+  background-color: #333;
+}
+
+.model-list-item.selected {
+  background-color: #61dafb;
+  color: #1a1a1a;
+  font-weight: bold;
+}
+
+.download-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.chat-history {
+  height: 400px;
+  overflow-y: auto;
+  border: 1px solid #333;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  background-color: #1a1a1a;
+}
+
+.chat-message {
+  margin-bottom: 1rem;
+}
+
+.chat-message.user {
+  text-align: right;
+}
+
+.chat-message .message-bubble {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  max-width: 80%;
+}
+
+.chat-message.user .message-bubble {
+  background-color: #61dafb;
+  color: #1a1a1a;
+}
+
+.chat-message.bot .message-bubble {
+  background-color: #333;
+}
+
+/* Training Dashboard Styles */
+.training-dashboard {
+  background-color: #242424;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+  margin-top: 2rem;
+}
+
+.start-job-form {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.start-job-form select {
+  flex-grow: 1;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background-color: #1a1a1a;
+  color: #f0f0f0;
+}
+
+.jobs-and-logs-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+}
+
+.job-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 350px;
+  overflow-y: auto;
+  border: 1px solid #333;
+  border-radius: 4px;
+}
+
+.job-list li {
+  padding: 0.75rem;
+  border-bottom: 1px solid #333;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.job-list li:last-child {
+  border-bottom: none;
+}
+
+.job-list li:hover {
+  background-color: #333;
+}
+
+.job-list li.selected {
+  background-color: #61dafb;
+  color: #1a1a1a;
+  font-weight: bold;
+}
+
+.job-logs {
+  background-color: #1a1a1a;
+  padding: 1rem;
+  border-radius: 4px;
+  height: 350px;
+  overflow-y: auto;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+}
+
+.job-logs pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.dataset-management-section {
+  margin-top: 2rem;
+  border-top: 1px solid #333;
+  padding-top: 1.5rem;
+}
+
+.dataset-management-section ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 1rem;
+}
+
+.dataset-management-section li {
+  background-color: #333;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
