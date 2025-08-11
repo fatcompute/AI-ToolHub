@@ -118,8 +118,8 @@ setup_application() {
     chmod +x $APP_DIR/backend/venv/bin/*
 
     # --- Create .env file ---
-    echo "Creating backend .env file..."
-    cat <<EOF > $APP_DIR/backend/.env
+    echo "Creating project .env file in the root directory..."
+    cat <<EOF > $APP_DIR/.env
 DATABASE_URL='postgresql://$DB_USER:$DB_PASS@localhost/$DB_NAME'
 FLASK_APP=backend.wsgi
 # Add any other environment variables here in the future
