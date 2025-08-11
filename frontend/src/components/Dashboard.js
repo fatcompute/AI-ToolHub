@@ -134,6 +134,7 @@ function Dashboard() {
 
             {user?.role === 'admin' && <UserManagement />}
         </div>
+    </>
     );
 }
 
