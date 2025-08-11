@@ -20,6 +20,11 @@ This platform is perfect for developers, researchers, and AI enthusiasts who wan
 - **Performance Analytics:**
     - Automatically captures and stores key training metrics like 'loss'.
     - Visualizes training performance with charts to help you evaluate your fine-tuned models.
+- **Role-Based Access Control (RBAC):**
+    - A full user authentication system (register/login).
+    - The first user to register is automatically granted 'admin' privileges.
+    - Admins can manage all users (update roles, delete users) through a dedicated UI.
+    - All data and actions are protected, ensuring users can only access what their role permits.
 - **Dark-Themed UI:** A sleek, modern, and user-friendly interface built with React.
 
 ## 3. Tech Stack

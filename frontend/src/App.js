@@ -1,15 +1,26 @@
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
 import './App.css';
 import Dashboard from './components/Dashboard';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>AI Toolkit Dashboard</h1>
-      </header>
-      <main className="App-main">
-        <Dashboard />
-      </main>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
     </div>
   );
 }

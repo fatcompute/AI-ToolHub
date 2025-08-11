@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import TrainingDashboard from './TrainingDashboard';
-
-const API_URL = 'http://localhost:5000/api/v1';
+import UserManagement from './UserManagement';
+import api from '../api';
 
 function Dashboard() {
+    const { user, logout } = useContext(AuthContext);
+
     // State for model management
     const [models, setModels] = useState([]);
     const [newModelId, setNewModelId] = useState('');
@@ -19,14 +22,10 @@ function Dashboard() {
 
     const fetchModels = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/models`);
-            if (!response.ok) {
-                throw new Error('Failed to fetch models.');
-            }
-            const data = await response.json();
-            setModels(data);
+            const response = await api.get('/models');
+            setModels(response.data);
         } catch (error) {
-            setManagementError(error.message);
+            setManagementError(error.response?.data?.error || 'Failed to fetch models.');
         }
     }, []);
 
@@ -43,19 +42,11 @@ function Dashboard() {
         setIsDownloading(true);
         setManagementError('');
         try {
-            const response = await fetch(`${API_URL}/models/download`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ huggingface_id: newModelId }),
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to download model.');
-            }
+            await api.post('/models/download', { huggingface_id: newModelId });
             setNewModelId('');
             await fetchModels(); // Refresh the model list
         } catch (error) {
-            setManagementError(error.message);
+            setManagementError(error.response?.data?.error || 'Failed to download model.');
         } finally {
             setIsDownloading(false);
         }
@@ -75,28 +66,25 @@ function Dashboard() {
         setPrompt('');
 
         try {
-            const response = await fetch(`${API_URL}/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model_id: selectedModel.id, prompt: prompt }),
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to get response.');
-            }
-            setChatHistory([...newHistory, { role: 'bot', content: data.response }]);
+            const response = await api.post('/chat', { model_id: selectedModel.id, prompt: prompt });
+            setChatHistory([...newHistory, { role: 'bot', content: response.data.response }]);
         } catch (error) {
-            setChatError(error.message);
+            setChatError(error.response?.data?.error || 'Failed to get response.');
         } finally {
             setIsGenerating(false);
         }
     };
 
     return (
-        <div className="dashboard-grid">
-            <div className="model-management">
-                <h2>Model Management</h2>
-                {managementError && <p className="error-message">{managementError}</p>}
+        <>
+            <div className="dashboard-header">
+                Welcome, {user?.username}! ({user?.role})
+                <button onClick={logout} className="logout-button">Logout</button>
+            </div>
+            <div className="dashboard-grid">
+                <div className="model-management">
+                    <h2>Model Management</h2>
+                    {managementError && <p className="error-message">{managementError}</p>}
                 <form onSubmit={handleDownloadModel} className="download-form">
                     <input
                         type="text"
@@ -147,6 +135,8 @@ function Dashboard() {
             </div>
 
             <TrainingDashboard models={models} />
+
+            {user?.role === 'admin' && <UserManagement />}
         </div>
     );
 }

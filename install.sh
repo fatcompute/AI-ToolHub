@@ -116,7 +116,7 @@ setup_application() {
     echo "Creating backend .env file..."
     cat <<EOF > $APP_DIR/backend/.env
 DATABASE_URL='postgresql://$DB_USER:$DB_PASS@localhost/$DB_NAME'
-FLASK_APP=wsgi.py
+FLASK_APP=backend.wsgi
 # Add any other environment variables here in the future
 EOF
 
@@ -145,14 +145,13 @@ finalize_setup() {
     print_header "Finalizing Setup"
 
     echo "Initializing database schema..."
-    # Change to the backend directory to run flask commands
-    # The FLASK_APP is set in the .env file
+    # Run flask commands from the project root
     (
-        cd $APP_DIR/backend &&
+        cd $APP_DIR &&
         # Use the full path to the flask executable in the venv
-        venv/bin/flask db init &&
-        venv/bin/flask db migrate -m "Initial setup" &&
-        venv/bin/flask db upgrade
+        backend/venv/bin/flask db init &&
+        backend/venv/bin/flask db migrate -m "Initial setup" &&
+        backend/venv/bin/flask db upgrade
     )
 
     echo "Enabling Apache site and modules..."
