@@ -130,7 +130,7 @@ function Dashboard() {
                 </form>
             </div>
 
-            <TrainingDashboard models={models} />
+            <TrainingDashboard models={models} user={user} />
 
             {user?.role === 'admin' && <UserManagement />}
         </div>

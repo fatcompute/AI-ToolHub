@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import api from '../api';
 import JobAnalytics from './JobAnalytics';
 
-const API_URL = 'http://localhost:5000/api/v1';
-
-function TrainingDashboard({ models }) {
+function TrainingDashboard({ models, user }) { // Accept user as a prop
     // State for datasets
     const [datasets, setDatasets] = useState([]);
     const [selectedFile, setSelectedFile] = useState(null);
@@ -27,7 +26,7 @@ function TrainingDashboard({ models }) {
     // --- Data Fetching Callbacks ---
     const fetchDatasets = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/datasets`);
+            const response = await api.get('/datasets');
             setDatasets(response.data);
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to fetch datasets.');
@@ -36,7 +35,7 @@ function TrainingDashboard({ models }) {
 
     const fetchJobs = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/jobs`);
+            const response = await api.get('/jobs');
             setJobs(response.data);
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to fetch jobs.');
@@ -61,11 +60,11 @@ function TrainingDashboard({ models }) {
 
     // Pre-fill form with user's default settings
     useEffect(() => {
-        if (currentUser?.settings) {
-            setEpochs(currentUser.settings.default_epochs || 1);
-            setBatchSize(currentUser.settings.default_batch_size || 1);
+        if (user?.settings) {
+            setEpochs(user.settings.default_epochs || 1);
+            setBatchSize(user.settings.default_batch_size || 1);
         }
-    }, [currentUser]);
+    }, [user]);
 
     useEffect(() => {
         // Poll for job updates and selected job details
@@ -93,17 +92,14 @@ function TrainingDashboard({ models }) {
         formData.append('file', selectedFile);
 
         try {
-            const response = await fetch(`${API_URL}/datasets/upload`, {
-                method: 'POST',
-                body: formData,
+            await api.post('/datasets/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Upload failed');
             await fetchDatasets(); // Refresh list
             setSelectedFile(null);
             e.target.reset(); // Clear file input
         } catch (err) {
-            setError(err.message);
+            setError(err.response?.data?.error || 'Upload failed');
         } finally {
             setIsUploading(false);
         }
