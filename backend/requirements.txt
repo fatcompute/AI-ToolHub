@@ -9,3 +9,5 @@ accelerate
 Flask-Migrate
 psycopg2-binary
 Flask-JWT-Extended
+evaluate
+scikit-learn

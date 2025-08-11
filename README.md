@@ -13,13 +13,14 @@ This platform is perfect for developers, researchers, and AI enthusiasts who wan
     - Download any open-source model from the Hugging Face Hub directly through the UI.
     - View and manage your collection of locally stored models.
     - Chat interface to interact with any of your downloaded models.
-- **Model Fine-Tuning:**
-    - Upload your own datasets (in `.txt`, `.csv`, or `.jsonl` format).
-    - Launch fine-tuning jobs for any of your models using your datasets.
+- **Model Fine-Tuning & Evaluation:**
+    - Upload your own training and evaluation datasets (in `.txt`, `.csv`, or `.jsonl` format).
+    - Launch fine-tuning jobs, optionally providing an evaluation set to track performance against a separate dataset.
     - Monitor the status and progress of training jobs in real-time.
-- **Performance Analytics:**
-    - Automatically captures and stores key training metrics like 'loss'.
-    - Visualizes training performance with charts to help you evaluate your fine-tuned models.
+- **Performance Analytics & Visualization:**
+    - Automatically captures and stores key training and evaluation metrics (e.g., loss, accuracy, perplexity).
+    - Visualizes performance with charts comparing Training vs. Evaluation Loss to diagnose overfitting.
+    - Displays final evaluation scores in a summary scorecard for at-a-glance model assessment.
 - **Role-Based Access Control (RBAC):**
     - A full user authentication system (register/login).
     - The first user to register is automatically granted 'admin' privileges.

@@ -220,14 +220,26 @@ def create_app(config_overrides=None):
         if not data or 'model_id' not in data or 'dataset_id' not in data:
             return jsonify({"error": "Missing 'model_id' or 'dataset_id'"}), 400
 
-        job = TrainingJob(model_id=data['model_id'], dataset_id=data['dataset_id'])
+        eval_dataset_id = data.get('eval_dataset_id') # Optional
+
+        job = TrainingJob(
+            model_id=data['model_id'],
+            dataset_id=data['dataset_id'],
+            # Note: We are not saving the eval_dataset_id to the job model itself,
+            # as it's a transient parameter for the training run.
+        )
         db.session.add(job)
         db.session.commit()
 
         # Launch the training script in a separate process
         python_executable = os.sys.executable
         script_path = os.path.join(os.path.dirname(__file__), 'training_service.py')
-        subprocess.Popen([python_executable, script_path, str(job.id)])
+
+        command = [python_executable, script_path, str(job.id)]
+        if eval_dataset_id:
+            command.append(str(eval_dataset_id))
+
+        subprocess.Popen(command)
 
         return jsonify({"message": "Training job started", "job_id": job.id}), 202
 

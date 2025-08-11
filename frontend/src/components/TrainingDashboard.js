@@ -12,7 +12,8 @@ function TrainingDashboard({ models }) {
     // State for training jobs
     const [jobs, setJobs] = useState([]);
     const [selectedModelForTraining, setSelectedModelForTraining] = useState('');
-    const [selectedDatasetForTraining, setSelectedDatasetForTraining] = useState('');
+    const [selectedTrainDataset, setSelectedTrainDataset] = useState('');
+    const [selectedEvalDataset, setSelectedEvalDataset] = useState(''); // New state for eval dataset
     const [isStartingJob, setIsStartingJob] = useState(false);
 
     // State for monitoring
@@ -106,23 +107,23 @@ function TrainingDashboard({ models }) {
 
     const handleStartJob = async (e) => {
         e.preventDefault();
-        if (!selectedModelForTraining || !selectedDatasetForTraining) {
-            setError('Please select a model and a dataset to start training.');
+        if (!selectedModelForTraining || !selectedTrainDataset) {
+            setError('Please select a base model and a training dataset.');
             return;
         }
         setIsStartingJob(true);
         setError('');
         try {
-            const response = await fetch(`${API_URL}/jobs/start`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model_id: selectedModelForTraining,
-                    dataset_id: selectedDatasetForTraining,
-                }),
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Failed to start job');
+            const payload = {
+                model_id: selectedModelForTraining,
+                dataset_id: selectedTrainDataset,
+            };
+            if (selectedEvalDataset) {
+                payload.eval_dataset_id = selectedEvalDataset;
+            }
+
+            const response = await api.post('/jobs/start', payload);
+            if (!response.ok && response.status !== 202) throw new Error(response.data.error || 'Failed to start job');
             await fetchJobs(); // Refresh job list
         } catch (err) {
             setError(err.message);
@@ -144,8 +145,12 @@ function TrainingDashboard({ models }) {
                         <option value="">Select a Base Model</option>
                         {models.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
-                    <select value={selectedDatasetForTraining} onChange={e => setSelectedDatasetForTraining(e.target.value)} required>
-                        <option value="">Select a Dataset</option>
+                    <select value={selectedTrainDataset} onChange={e => setSelectedTrainDataset(e.target.value)} required>
+                        <option value="">Select Training Dataset</option>
+                        {datasets.map(d => <option key={d.id} value={d.id}>{d.filename}</option>)}
+                    </select>
+                    <select value={selectedEvalDataset} onChange={e => setSelectedEvalDataset(e.target.value)}>
+                        <option value="">Select Evaluation Dataset (Optional)</option>
                         {datasets.map(d => <option key={d.id} value={d.id}>{d.filename}</option>)}
                     </select>
                     <button type="submit" disabled={isStartingJob}>{isStartingJob ? 'Starting...' : 'Start Training'}</button>
