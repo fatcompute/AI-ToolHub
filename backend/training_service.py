@@ -1,6 +1,7 @@
 import os
 import sys
 import torch
+import argparse
 import numpy as np
 import evaluate
 from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments, TextDataset, DataCollatorForLanguageModeling, TrainerCallback
@@ -62,7 +63,7 @@ def compute_metrics(eval_preds):
     }
 
 
-def run_training(job_id, eval_dataset_id=None):
+def run_training(args):
     """
     The main function for the training process.
     This function is run in a separate process.
@@ -71,9 +72,9 @@ def run_training(job_id, eval_dataset_id=None):
     app = create_app()
     with app.app_context():
         # 1. Fetch job details from the database
-        job = TrainingJob.query.get(job_id)
+        job = TrainingJob.query.get(args.job_id)
         if not job:
-            print(f"Error: Training job with ID {job_id} not found.")
+            print(f"Error: Training job with ID {args.job_id} not found.")
             return
 
         try:
@@ -82,7 +83,7 @@ def run_training(job_id, eval_dataset_id=None):
             job.logs = 'Training started...\n'
             db.session.commit()
 
-            print(f"Starting training for job {job_id}...")
+            print(f"Starting training for job {args.job_id}...")
 
             # 2. Load base model and tokenizer
             print(f"Loading base model: {job.model.huggingface_id}")
@@ -107,8 +108,8 @@ def run_training(job_id, eval_dataset_id=None):
             )
 
             eval_dataset = None
-            if eval_dataset_id:
-                eval_dataset_record = Dataset.query.get(eval_dataset_id)
+            if args.eval_dataset_id:
+                eval_dataset_record = Dataset.query.get(args.eval_dataset_id)
                 if eval_dataset_record:
                     print(f"Loading evaluation dataset: {eval_dataset_record.filename}")
                     eval_dataset = TextDataset(
@@ -123,8 +124,8 @@ def run_training(job_id, eval_dataset_id=None):
             training_args = TrainingArguments(
                 output_dir=output_dir,
                 overwrite_output_dir=True,
-                num_train_epochs=1,
-                per_device_train_batch_size=1,
+                num_train_epochs=args.num_train_epochs,
+                per_device_train_batch_size=args.per_device_train_batch_size,
                 save_steps=10_000,
                 save_total_limit=2,
                 logging_strategy="epoch",
@@ -171,12 +172,11 @@ def run_training(job_id, eval_dataset_id=None):
 
 
 if __name__ == '__main__':
-    # This allows the script to be called from the command line with arguments
-    if len(sys.argv) < 2:
-        print("Error: Please provide a training job ID.")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Run a training job.")
+    parser.add_argument("job_id", type=int, help="The ID of the training job in the database.")
+    parser.add_argument("--eval_dataset_id", type=int, default=None, help="Optional ID of the evaluation dataset.")
+    parser.add_argument("--num_train_epochs", type=int, default=1, help="Number of training epochs.")
+    parser.add_argument("--per_device_train_batch_size", type=int, default=1, help="Batch size for training.")
 
-    job_id_arg = int(sys.argv[1])
-    eval_id_arg = int(sys.argv[2]) if len(sys.argv) > 2 else None
-
-    run_training(job_id_arg, eval_dataset_id=eval_id_arg)
+    args = parser.parse_args()
+    run_training(args)

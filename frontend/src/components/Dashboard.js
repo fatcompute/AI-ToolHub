@@ -77,10 +77,6 @@ function Dashboard() {
 
     return (
         <>
-            <div className="dashboard-header">
-                Welcome, {user?.username}! ({user?.role})
-                <button onClick={logout} className="logout-button">Logout</button>
-            </div>
             <div className="dashboard-grid">
                 <div className="model-management">
                     <h2>Model Management</h2>

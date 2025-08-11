@@ -47,8 +47,14 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('token');
     };
 
+    const refreshUser = () => {
+        if (token) {
+            fetchUserProfile();
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, register, loading }}>
+        <AuthContext.Provider value={{ user, token, login, logout, register, loading, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

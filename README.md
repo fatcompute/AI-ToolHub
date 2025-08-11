@@ -26,7 +26,10 @@ This platform is perfect for developers, researchers, and AI enthusiasts who wan
     - The first user to register is automatically granted 'admin' privileges.
     - Admins can manage all users (update roles, delete users) through a dedicated UI.
     - All data and actions are protected, ensuring users can only access what their role permits.
-- **Dark-Themed UI:** A sleek, modern, and user-friendly interface built with React.
+- **Configuration & Settings:**
+    - A dedicated settings page allows users to customize their experience (e.g., theme) and set default parameters for training jobs.
+    - Admins can view system-level configuration paths.
+- **Dark-Themed UI:** A sleek, modern, and user-friendly interface built with React, including a Light mode toggle.
 
 ## 3. Tech Stack
 

@@ -127,9 +127,32 @@ def create_app(config_overrides=None):
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
-                "role": user.role
+                "role": user.role,
+                "settings": user.settings or {} # Return settings or empty dict
             })
         return jsonify({"error": "User not found"}), 404
+
+    @app.route('/api/v1/users/settings', methods=['PUT'])
+    @jwt_required()
+    def update_user_settings():
+        current_user_identity = get_jwt_identity()
+        user_id = current_user_identity['id']
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        data = request.get_json()
+        if 'settings' not in data:
+            return jsonify({"error": "Missing 'settings' field in request body"}), 400
+
+        # Merge new settings with existing ones
+        current_settings = user.settings or {}
+        current_settings.update(data['settings'])
+        user.settings = current_settings
+
+        db.session.commit()
+
+        return jsonify({"message": "Settings updated successfully", "settings": user.settings})
 
     @app.route("/api/v1")
     def index():
@@ -220,13 +243,17 @@ def create_app(config_overrides=None):
         if not data or 'model_id' not in data or 'dataset_id' not in data:
             return jsonify({"error": "Missing 'model_id' or 'dataset_id'"}), 400
 
-        eval_dataset_id = data.get('eval_dataset_id') # Optional
+        # Get training parameters from request, with defaults
+        training_params = {
+            "num_train_epochs": data.get('num_train_epochs', 1),
+            "per_device_train_batch_size": data.get('per_device_train_batch_size', 1)
+        }
 
         job = TrainingJob(
             model_id=data['model_id'],
             dataset_id=data['dataset_id'],
-            # Note: We are not saving the eval_dataset_id to the job model itself,
-            # as it's a transient parameter for the training run.
+            # Store the params used for this job for reproducibility
+            settings=training_params
         )
         db.session.add(job)
         db.session.commit()
@@ -235,9 +262,13 @@ def create_app(config_overrides=None):
         python_executable = os.sys.executable
         script_path = os.path.join(os.path.dirname(__file__), 'training_service.py')
 
-        command = [python_executable, script_path, str(job.id)]
-        if eval_dataset_id:
-            command.append(str(eval_dataset_id))
+        command = [
+            python_executable, script_path, str(job.id),
+            '--num_train_epochs', str(training_params['num_train_epochs']),
+            '--per_device_train_batch_size', str(training_params['per_device_train_batch_size'])
+        ]
+        if data.get('eval_dataset_id'):
+            command.extend(['--eval_dataset_id', str(data['eval_dataset_id'])])
 
         subprocess.Popen(command)
 
@@ -277,6 +308,17 @@ def create_app(config_overrides=None):
         db.session.delete(user)
         db.session.commit()
         return jsonify({"message": f"User {user.username} deleted successfully."})
+
+    # --- System Routes (Admin Only) ---
+    @app.route('/api/v1/system/config', methods=['GET'])
+    @admin_required()
+    def get_system_config():
+        # Expose non-sensitive configuration details to admins
+        config_data = {
+            "upload_folder": app.config.get('UPLOAD_FOLDER'),
+            "models_dir": llm_service.MODELS_DIR
+        }
+        return jsonify(config_data)
 
     return app
 

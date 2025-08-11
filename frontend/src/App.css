@@ -10,15 +10,49 @@
 /* Header */
 .App-header {
   background-color: #242424;
-  padding: 1rem 2rem;
+  padding: 0 2rem;
   border-bottom: 1px solid #333;
-  text-align: center;
+  height: 60px;
 }
 
-.App-header h1 {
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header-content .logo h1 {
   margin: 0;
-  font-size: 2rem;
-  color: #61dafb; /* React blue for a splash of color */
+  font-size: 1.8rem;
+  color: #61dafb;
+}
+
+.header-content a {
+  color: #f0f0f0;
+  text-decoration: none;
+  padding: 0 1rem;
+  transition: color 0.2s;
+}
+
+.header-content a:hover {
+  color: #61dafb;
+}
+
+.header-content nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-content .user-info {
+  color: #aaa;
+  font-size: 0.9rem;
+  border-left: 1px solid #444;
+  padding-left: 1.5rem;
+  margin-left: 0.5rem;
 }
 
 /* Main Content */
@@ -407,4 +441,139 @@ textarea {
   font-size: 1.75rem;
   font-weight: bold;
   color: white;
+}
+
+/* --- Light Theme --- */
+.App.light {
+  background-color: #f0f2f5;
+  color: #1c1e21;
+}
+
+.App.light .App-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #ddd;
+}
+
+.App.light .header-content .logo h1,
+.App.light .header-content a:hover,
+.App.light h2 {
+  color: #1877f2; /* A blue for the light theme */
+}
+
+.App.light .header-content a {
+  color: #444;
+}
+
+.App.light .header-content .user-info {
+  color: #666;
+  border-left: 1px solid #ddd;
+}
+
+.App.light .model-management,
+.App.light .chat-interface,
+.App.light .training-dashboard,
+.App.light .user-management,
+.App.light .auth-form {
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+}
+
+.App.light input,
+.App.light textarea,
+.App.light select {
+  background-color: #f0f2f5;
+  border: 1px solid #ccc;
+  color: #1c1e21;
+}
+
+.App.light .model-list-item:hover {
+  background-color: #f0f2f5;
+}
+
+.App.light .model-list-item.selected {
+  background-color: #1877f2;
+  color: white;
+}
+
+.App.light .chat-history {
+  background-color: #f0f2f5;
+  border: 1px solid #ddd;
+}
+
+.App.light .chat-message.bot .message-bubble {
+  background-color: #e4e6eb;
+  color: #1c1e21;
+}
+
+.App.light .chat-message.user .message-bubble {
+  background-color: #1877f2;
+  color: white;
+}
+
+.App.light .scorecard {
+  background-color: #e4e6eb;
+}
+
+.App.light .scorecard p {
+  color: #1c1e21;
+}
+
+/* Settings Page Styles */
+.settings-page {
+  max-width: 800px;
+}
+
+.settings-section {
+  background-color: #242424;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+  margin-top: 2rem;
+}
+
+.settings-section h3 {
+  margin-top: 0;
+  color: #61dafb;
+}
+
+.settings-section form label {
+  display: block;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.settings-section form button {
+  margin-top: 1.5rem;
+}
+
+.App.light .settings-section {
+  background-color: #fff;
+  border: 1px solid #ddd;
+}
+
+.App.light .settings-section h3 {
+  color: #1877f2;
+}
+
+.config-item {
+  margin-top: 1rem;
+}
+
+.config-item strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #aaa;
+}
+
+.config-item code {
+  background-color: #1a1a1a;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.App.light .config-item code {
+  background-color: #f0f2f5;
+  border: 1px solid #ddd;
 }
