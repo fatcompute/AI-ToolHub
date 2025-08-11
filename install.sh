@@ -109,8 +109,13 @@ setup_application() {
     # --- Set Permissions ---
     echo "Setting ownership and permissions..."
     chown -R www-data:www-data $APP_DIR
+
+    echo "Setting directory permissions to 755 and file permissions to 644..."
     find $APP_DIR -type d -exec chmod 755 {} \;
     find $APP_DIR -type f -exec chmod 644 {} \;
+
+    echo "Re-applying execute permissions for venv scripts..."
+    chmod +x $APP_DIR/backend/venv/bin/*
 
     # --- Create .env file ---
     echo "Creating backend .env file..."
