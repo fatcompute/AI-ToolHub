@@ -106,17 +106,6 @@ setup_application() {
     echo "Building React application..."
     (cd $APP_DIR/frontend && npm run build)
 
-    # --- Set Permissions ---
-    echo "Setting ownership and permissions..."
-    chown -R www-data:www-data $APP_DIR
-
-    echo "Setting directory permissions to 755 and file permissions to 644..."
-    find $APP_DIR -type d -exec chmod 755 {} \;
-    find $APP_DIR -type f -exec chmod 644 {} \;
-
-    echo "Re-applying execute permissions for venv scripts..."
-    chmod +x $APP_DIR/backend/venv/bin/*
-
     # --- Create .env file ---
     echo "Creating project .env file in the root directory..."
     cat <<EOF > $APP_DIR/.env
@@ -170,6 +159,22 @@ finalize_setup() {
     echo "Setup finalized."
 }
 
+set_final_permissions() {
+    print_header "Setting Final Ownership and Permissions"
+
+    chown -R www-data:www-data $APP_DIR
+
+    echo "Setting directory permissions to 755 and file permissions to 644..."
+    find $APP_DIR -type d -exec chmod 755 {} \;
+    find $APP_DIR -type f -exec chmod 644 {} \;
+
+    echo "Setting execute permissions for venv and install scripts..."
+    chmod +x $APP_DIR/backend/venv/bin/*
+    chmod +x $APP_DIR/install.sh
+
+    echo "Permissions set."
+}
+
 # --- Main Execution ---
 
 main() {
@@ -185,8 +190,9 @@ main() {
     install_system_deps
     setup_database
     setup_application
-    configure_apache
     finalize_setup
+    configure_apache
+    set_final_permissions
 
     print_header "Installation Complete!"
     echo "You should now be able to access the application at your specified domain/IP."
