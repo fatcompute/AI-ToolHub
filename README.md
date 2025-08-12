@@ -29,6 +29,7 @@ This platform is perfect for developers, researchers, and AI enthusiasts who wan
 - **Configuration & Settings:**
     - A dedicated settings page allows users to customize their experience (e.g., theme) and set default parameters for training jobs.
     - Admins can view system-level configuration paths.
+- **AI Diagnosis Agent:** The application includes a built-in agent that automatically captures unhandled backend errors. It uses an LLM to perform a root cause analysis and propose a code fix, which administrators can view in a dedicated "Code Health" dashboard.
 - **Dark-Themed UI:** A sleek, modern, and user-friendly interface built with React, including a Light mode toggle.
 
 ## 3. Tech Stack

@@ -55,3 +55,17 @@ class TrainingJob(db.Model):
     model = db.relationship('LLMModel', backref=db.backref('training_jobs', lazy=True))
     dataset = db.relationship('Dataset', backref=db.backref('training_jobs', lazy=True))
     def __repr__(self): return f'<TrainingJob {self.id}>'
+
+class CapturedError(db.Model):
+    """Represents a runtime error captured by the application."""
+    id = db.Column(db.Integer, primary_key=True)
+    traceback = db.Column(db.Text, nullable=False)
+    file_path = db.Column(db.String(500), nullable=True)
+    line_number = db.Column(db.Integer, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='new') # new, analyzing, analyzed, fixed
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    analysis = db.Column(db.Text, nullable=True) # Explanation from the LLM
+    proposed_fix = db.Column(db.Text, nullable=True) # Diff from the LLM
+
+    def __repr__(self):
+        return f'<CapturedError {self.id} at {self.file_path}:{self.line_number}>'

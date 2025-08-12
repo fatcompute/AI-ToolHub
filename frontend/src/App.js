@@ -7,7 +7,9 @@ import Dashboard from './components/Dashboard';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import SettingsPage from './pages/SettingsPage';
+import CodeHealthPage from './pages/CodeHealthPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 
 function App() {
   const { theme } = useContext(ThemeContext);
@@ -29,6 +31,10 @@ function App() {
           <Route
             path="/settings"
             element={<ProtectedRoute><SettingsPage /></ProtectedRoute>}
+          />
+          <Route
+            path="/code-health"
+            element={<AdminRoute><CodeHealthPage /></AdminRoute>}
           />
         </Routes>
       </main>

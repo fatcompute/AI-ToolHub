@@ -500,6 +500,92 @@ textarea {
   border: 1px solid #ddd;
 }
 
+/* Code Health Page Styles */
+.health-grid {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  gap: 2rem;
+  height: calc(100vh - 120px); /* Full height minus header */
+}
+
+.error-list-container, .error-details-container {
+  background-color: #242424;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.error-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.error-list li {
+  padding: 1rem;
+  border-bottom: 1px solid #333;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.error-list li:hover {
+  background-color: #333;
+}
+
+.error-list li.selected {
+  background-color: #c23b22; /* A reddish color for errors */
+  color: white;
+}
+
+.error-list li span {
+  display: block;
+  font-size: 0.9rem;
+  color: #aaa;
+  margin-top: 0.25rem;
+}
+.error-list li small {
+  display: block;
+  font-size: 0.8rem;
+  color: #777;
+  margin-top: 0.5rem;
+}
+
+.analysis-text {
+  white-space: pre-wrap;
+  background-color: #1a1a1a;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.traceback-box {
+  white-space: pre-wrap;
+  background-color: #1a1a1a;
+  padding: 1rem;
+  border-radius: 4px;
+  max-height: 400px;
+  overflow: auto;
+  font-size: 0.85rem;
+}
+
+.App.light .error-list-container,
+.App.light .error-details-container {
+  background-color: #fff;
+  border-color: #ddd;
+}
+
+.App.light .error-list li.selected {
+  background-color: #e05252;
+}
+
+.App.light .analysis-text,
+.App.light .traceback-box {
+  background-color: #f0f2f5;
+  border: 1px solid #ddd;
+}
+
 .App.light .chat-message.bot .message-bubble {
   background-color: #e4e6eb;
   color: #1c1e21;

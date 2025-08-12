@@ -20,6 +20,7 @@ function Header() {
                         <>
                             <Link to="/">Dashboard</Link>
                             <Link to="/settings">Settings</Link>
+                            {user.role === 'admin' && <Link to="/code-health">Code Health</Link>}
                             <span className="user-info">
                                 Welcome, {user.username} ({user.role})
                             </span>
