@@ -23,7 +23,6 @@ def create_app(config_overrides=None):
     app.config.from_mapping(
         SQLALCHEMY_DATABASE_URI=database_uri,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        UPLOAD_FOLDER=os.path.join(basedir, 'datasets'),
         JWT_SECRET_KEY=os.environ.get('JWT_SECRET_KEY', 'a-default-dev-secret-key')
     )
     if config_overrides:
@@ -117,16 +116,20 @@ def create_app(config_overrides=None):
     @jwt_required()
     def get_models():
         models = llm_service.list_local_models()
-        return jsonify([{"id": m.id, "name": m.name, "huggingface_id": m.huggingface_id, "status": m.status} for m in models])
+        return jsonify([{"id": m.id, "name": m.name, "filename": m.filename} for m in models])
 
     @app.route("/api/v1/models/download", methods=['POST'])
     @jwt_required()
     def download_model_endpoint():
         data = request.get_json()
-        if not data or 'huggingface_id' not in data:
-            return jsonify({"error": "Missing 'huggingface_id'"}), 400
+        if not data or 'filename' not in data:
+            return jsonify({"error": "Missing 'filename' in request body"}), 400
+
+        # model_name is optional, can be used for a user-friendly alias
+        model_name = data.get('model_name')
+
         try:
-            model = llm_service.download_model(data['huggingface_id'])
+            model = llm_service.download_model(data['filename'], model_name)
             return jsonify({"message": "Model downloaded", "model": {"id": model.id, "name": model.name}}), 201
         except (ValueError, IOError) as e:
             return jsonify({"error": str(e)}), 500
@@ -142,77 +145,6 @@ def create_app(config_overrides=None):
             return jsonify({"response": response})
         except (ValueError, RuntimeError) as e:
             return jsonify({"error": str(e)}), 500
-
-    # Dataset Routes
-    @app.route('/api/v1/datasets', methods=['GET'])
-    @jwt_required()
-    def list_datasets():
-        datasets = Dataset.query.all()
-        return jsonify([{"id": ds.id, "filename": ds.filename, "created_at": ds.created_at.isoformat()} for ds in datasets])
-
-    @app.route('/api/v1/datasets/upload', methods=['POST'])
-    @jwt_required()
-    def upload_dataset():
-        if 'file' not in request.files: return jsonify({"error": "No file part"}), 400
-        file = request.files['file']
-        if file.filename == '': return jsonify({"error": "No selected file"}), 400
-        if file:
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            if os.path.exists(filepath): return jsonify({"error": "File with this name already exists"}), 409
-            file.save(filepath)
-            new_dataset = Dataset(filename=filename, path=filepath)
-            db.session.add(new_dataset)
-            db.session.commit()
-            return jsonify({"message": "Dataset uploaded", "dataset": {"id": new_dataset.id, "filename": filename}}), 201
-        return jsonify({"error": "File upload failed"}), 400
-
-    # Training Job Routes
-    @app.route('/api/v1/jobs', methods=['GET'])
-    @jwt_required()
-    def list_jobs():
-        jobs = TrainingJob.query.order_by(TrainingJob.created_at.desc()).all()
-        return jsonify([
-            {
-                "id": job.id, "model_id": job.model_id, "dataset_id": job.dataset_id,
-                "status": job.status, "created_at": job.created_at.isoformat(),
-                "completed_at": job.completed_at.isoformat() if job.completed_at else None
-            } for job in jobs
-        ])
-
-    @app.route('/api/v1/jobs/<int:job_id>', methods=['GET'])
-    @jwt_required()
-    def get_job(job_id):
-        job = TrainingJob.query.get_or_404(job_id)
-        return jsonify({
-            "id": job.id, "status": job.status, "logs": job.logs,
-            "metrics": job.metrics, "model_name": job.model.name, "dataset_name": job.dataset.filename
-        })
-
-    @app.route('/api/v1/jobs/start', methods=['POST'])
-    @jwt_required()
-    def start_job():
-        data = request.get_json()
-        if not data or 'model_id' not in data or 'dataset_id' not in data:
-            return jsonify({"error": "Missing 'model_id' or 'dataset_id'"}), 400
-        training_params = {
-            "num_train_epochs": data.get('num_train_epochs', 1),
-            "per_device_train_batch_size": data.get('per_device_train_batch_size', 1)
-        }
-        job = TrainingJob(model_id=data['model_id'], dataset_id=data['dataset_id'], settings=training_params)
-        db.session.add(job)
-        db.session.commit()
-        python_executable = sys.executable
-        script_path = os.path.join(os.path.dirname(__file__), 'training_service.py')
-        command = [
-            python_executable, script_path, str(job.id),
-            '--num_train_epochs', str(training_params['num_train_epochs']),
-            '--per_device_train_batch_size', str(training_params['per_device_train_batch_size'])
-        ]
-        if data.get('eval_dataset_id'):
-            command.extend(['--eval_dataset_id', str(data['eval_dataset_id'])])
-        subprocess.Popen(command)
-        return jsonify({"message": "Training job started", "job_id": job.id}), 202
 
     # User Management Routes (Admin Only)
     @app.route('/api/v1/users', methods=['GET'])
@@ -254,7 +186,7 @@ def create_app(config_overrides=None):
         }
         return jsonify(config_data)
 
-    # --- Agent Routes (Admin Only) ---
+    # Agent Routes (Admin Only)
     @app.route('/api/v1/agent/errors', methods=['GET'])
     @admin_required()
     def list_captured_errors():

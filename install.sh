@@ -59,6 +59,7 @@ install_system_deps() {
     print_header "Installing System Dependencies"
     apt-get update
     # Use -y flag to automatically confirm installation
+    # npm is needed for the frontend build
     apt-get install -y python3-pip python3-venv apache2 postgresql postgresql-contrib libapache2-mod-wsgi-py3 npm
     echo "System dependencies installed."
 }
