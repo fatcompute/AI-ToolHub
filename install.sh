@@ -143,9 +143,16 @@ finalize_setup() {
     # Run flask commands from the project root
     (
         cd $APP_DIR &&
-        # Use the full path to the flask executable in the venv
-        backend/venv/bin/flask db init &&
-        backend/venv/bin/flask db migrate -m "Initial setup" &&
+        # Only initialize the migrations directory if it doesn't exist
+        if [ ! -d "backend/migrations" ]; then
+            echo "Initializing database migrations repository..."
+            backend/venv/bin/flask db init
+        fi &&
+
+        echo "Generating database migration..." &&
+        backend/venv/bin/flask db migrate -m "Update database schema" &&
+
+        echo "Applying database migration..." &&
         backend/venv/bin/flask db upgrade
     )
 
