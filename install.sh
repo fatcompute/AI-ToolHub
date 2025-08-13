@@ -143,11 +143,11 @@ finalize_setup() {
     # Run flask commands from the project root
     (
         cd $APP_DIR &&
-        # Only initialize the migrations directory if it doesn't exist
-        if [ ! -d "backend/migrations" ]; then
-            echo "Initializing database migrations repository..."
-            backend/venv/bin/flask db init
-        fi &&
+
+        echo "Initializing database migrations repository (if needed)..." &&
+        # The 'init' command fails if the directory already exists.
+        # '|| true' ensures the script doesn't exit on this specific, recoverable error.
+        backend/venv/bin/flask db init || true &&
 
         echo "Generating database migration..." &&
         backend/venv/bin/flask db migrate -m "Update database schema" &&
