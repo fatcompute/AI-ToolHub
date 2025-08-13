@@ -109,8 +109,12 @@ setup_application() {
 
     # --- Create .env file ---
     echo "Creating project .env file in the root directory..."
+
+    # URL-encode the password to handle special characters in the connection string
+    URL_ENCODED_DB_PASS=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$DB_PASS'''))")
+
     cat <<EOF > $APP_DIR/.env
-DATABASE_URL='postgresql://$DB_USER:$DB_PASS@localhost/$DB_NAME'
+DATABASE_URL="postgresql://$DB_USER:$URL_ENCODED_DB_PASS@localhost/$DB_NAME"
 FLASK_APP=backend.wsgi
 # Add any other environment variables here in the future
 EOF
