@@ -66,14 +66,15 @@ install_system_deps() {
 
 setup_database() {
     print_header "Setting Up PostgreSQL Database"
-    # Execute SQL commands as the postgres user
-    sudo -u postgres psql <<EOF
-CREATE DATABASE $DB_NAME;
-CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';
-ALTER ROLE $DB_USER SET client_encoding TO 'utf8';
-ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';
-ALTER ROLE $DB_USER SET timezone TO 'UTC';
-GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
+    # Use psql's -v option to safely pass the password as a variable.
+    # This avoids issues with special characters like single quotes in the password.
+    sudo -u postgres psql -v password="'$DB_PASS'" <<EOF
+        CREATE DATABASE $DB_NAME;
+        CREATE USER $DB_USER WITH PASSWORD :'password';
+        ALTER ROLE $DB_USER SET client_encoding TO 'utf8';
+        ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';
+        ALTER ROLE $DB_USER SET timezone TO 'UTC';
+        GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
 EOF
     echo "PostgreSQL database and user created."
 }
