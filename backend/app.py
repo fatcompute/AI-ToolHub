@@ -8,7 +8,7 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
-from .models import db, User, LLMModel, CapturedError
+from .models import db, User, LLMModel, CapturedError, Conversation, ChatMessage
 
 # --- Application Factory Function ---
 def create_app(config_overrides=None):
@@ -140,11 +140,75 @@ def create_app(config_overrides=None):
         data = request.get_json()
         if not data or 'model_id' not in data or 'prompt' not in data:
             return jsonify({"error": "Missing 'model_id' or 'prompt'"}), 400
+
+        user_id = get_jwt_identity()['id']
+        conversation_id = data.get('conversation_id')
+        prompt_text = data['prompt']
+        model_id = data['model_id']
+
         try:
-            response = llm_service.generate_text(data['model_id'], data['prompt'])
-            return jsonify({"response": response})
+            # Find or create conversation
+            if conversation_id:
+                conversation = Conversation.query.filter_by(id=conversation_id, user_id=user_id).first_or_404()
+            else:
+                # Create a title from the first 40 chars of the prompt
+                title = prompt_text[:40] + '...' if len(prompt_text) > 40 else prompt_text
+                conversation = Conversation(title=title, user_id=user_id, model_id=model_id)
+                db.session.add(conversation)
+                db.session.flush() # Flush to get the new conversation ID
+
+            # Save user message
+            user_message = ChatMessage(conversation_id=conversation.id, role='user', content=prompt_text)
+            db.session.add(user_message)
+
+            # Generate bot response
+            bot_response_text = llm_service.generate_text(model_id, prompt_text)
+
+            # Save bot message
+            bot_message = ChatMessage(conversation_id=conversation.id, role='bot', content=bot_response_text)
+            db.session.add(bot_message)
+
+            db.session.commit()
+
+            return jsonify({
+                "response": bot_response_text,
+                "conversation_id": conversation.id
+            })
+
         except (ValueError, RuntimeError) as e:
             return jsonify({"error": str(e)}), 500
+
+    # --- Conversation Routes ---
+    @app.route('/api/v1/conversations', methods=['GET'])
+    @jwt_required()
+    def list_conversations():
+        user_id = get_jwt_identity()['id']
+        conversations = Conversation.query.filter_by(user_id=user_id).order_by(Conversation.created_at.desc()).all()
+        return jsonify([
+            {"id": c.id, "title": c.title, "created_at": c.created_at.isoformat()}
+            for c in conversations
+        ])
+
+    @app.route('/api/v1/conversations/<int:conv_id>', methods=['GET'])
+    @jwt_required()
+    def get_conversation(conv_id):
+        user_id = get_jwt_identity()['id']
+        conv = Conversation.query.filter_by(id=conv_id, user_id=user_id).first_or_404()
+        messages = ChatMessage.query.filter_by(conversation_id=conv.id).order_by(ChatMessage.created_at.asc()).all()
+        return jsonify({
+            "id": conv.id,
+            "title": conv.title,
+            "messages": [{"role": m.role, "content": m.content} for m in messages]
+        })
+
+    @app.route('/api/v1/conversations/<int:conv_id>', methods=['DELETE'])
+    @jwt_required()
+    def delete_conversation(conv_id):
+        user_id = get_jwt_identity()['id']
+        conv = Conversation.query.filter_by(id=conv_id, user_id=user_id).first_or_404()
+        db.session.delete(conv)
+        db.session.commit()
+        return jsonify({"message": "Conversation deleted successfully."})
 
     # User Management Routes (Admin Only)
     @app.route('/api/v1/users', methods=['GET'])

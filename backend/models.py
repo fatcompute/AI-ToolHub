@@ -47,3 +47,29 @@ class CapturedError(db.Model):
 
     def __repr__(self):
         return f'<CapturedError {self.id} at {self.file_path}:{self.line_number}>'
+
+class Conversation(db.Model):
+    """Represents a single chat conversation."""
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    model_id = db.Column(db.Integer, db.ForeignKey('llm_model.id'), nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    user = db.relationship('User', backref=db.backref('conversations', lazy=True, cascade="all, delete-orphan"))
+    model = db.relationship('LLMModel', backref=db.backref('conversations', lazy=True))
+    messages = db.relationship('ChatMessage', backref='conversation', lazy=True, cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f'<Conversation {self.id}: {self.title}>'
+
+class ChatMessage(db.Model):
+    """Represents a single message within a conversation."""
+    id = db.Column(db.Integer, primary_key=True)
+    conversation_id = db.Column(db.Integer, db.ForeignKey('conversation.id'), nullable=False)
+    role = db.Column(db.String(10), nullable=False)  # 'user' or 'bot'
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def __repr__(self):
+        return f'<ChatMessage {self.id} from {self.role}>'

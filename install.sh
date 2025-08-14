@@ -3,6 +3,11 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
+# --- Configuration Variables ---
+# Hardcoding these for simplicity and robustness with Peer Authentication
+DB_NAME="aitoolkit_db"
+DB_USER="www-data" # Use the Apache user for Peer Authentication
+
 # --- Helper Functions ---
 print_header() {
     echo "================================================================="
@@ -15,7 +20,6 @@ print_header() {
 get_user_input() {
     print_header "Gathering Configuration Details"
 
-    # Prompt for user-defined variables with defaults
     read -p "Enter the desired installation directory [/var/www/aitoolkit]: " APP_DIR
     APP_DIR=${APP_DIR:-/var/www/aitoolkit}
 
@@ -25,27 +29,12 @@ get_user_input() {
         read -p "Enter your server's domain name or IP address: " SERVER_NAME
     done
 
-    read -p "Enter the name for the PostgreSQL database [aitoolkit_db]: " DB_NAME
-    DB_NAME=${DB_NAME:-aitoolkit_db}
-
-    read -p "Enter the username for the PostgreSQL user [aitoolkit_user]: " DB_USER
-    DB_USER=${DB_USER:-aitoolkit_user}
-
-    # Prompt for password without echoing to the terminal
-    read -s -p "Enter the password for the PostgreSQL user: " DB_PASS
-    echo
-    while [ -z "$DB_PASS" ]; do
-        echo "Password cannot be empty." >&2
-        read -s -p "Enter the password for the PostgreSQL user: " DB_PASS
-        echo
-    done
-
     echo "---"
     echo "Configuration:"
     echo "Installation Directory: $APP_DIR"
     echo "Server Name/IP: $SERVER_NAME"
-    echo "Database Name: $DB_NAME"
-    echo "Database User: $DB_USER"
+    echo "Database Name: $DB_NAME (hardcoded)"
+    echo "Database User: $DB_USER (hardcoded)"
     echo "---"
     read -p "Is this correct? (y/n) " -n 1 -r
     echo
@@ -58,25 +47,37 @@ get_user_input() {
 install_system_deps() {
     print_header "Installing System Dependencies"
     apt-get update
-    # Use -y flag to automatically confirm installation
-    # npm is needed for the frontend build
     apt-get install -y python3-pip python3-venv apache2 postgresql postgresql-contrib libapache2-mod-wsgi-py3 npm
     echo "System dependencies installed."
 }
 
+configure_postgres() {
+    print_header "Configuring PostgreSQL Authentication"
+    # Find the pg_hba.conf file
+    PG_HBA_CONF=$(sudo -u postgres psql -t -P format=unaligned -c 'show hba_file;')
+
+    echo "Found pg_hba.conf at: $PG_HBA_CONF"
+
+    # Check if the peer auth rule already exists
+    if grep -q "local *$DB_NAME *$DB_USER *peer" "$PG_HBA_CONF"; then
+        echo "PostgreSQL peer authentication rule already exists. Skipping."
+    else
+        echo "Adding peer authentication rule to pg_hba.conf..."
+        # Add a rule to allow the 'www-data' user to connect to the specific db via peer auth
+        echo "local    $DB_NAME    $DB_USER    peer" >> "$PG_HBA_CONF"
+    fi
+
+    echo "Restarting PostgreSQL service to apply changes..."
+    systemctl restart postgresql
+}
+
 setup_database() {
     print_header "Setting Up PostgreSQL Database"
-    # Use psql's -v option to safely pass the password as a variable.
-    # This avoids issues with special characters like single quotes in the password.
-    sudo -u postgres psql -v password="'$DB_PASS'" <<EOF
-        CREATE DATABASE $DB_NAME;
-        CREATE USER $DB_USER WITH PASSWORD :'password';
-        ALTER ROLE $DB_USER SET client_encoding TO 'utf8';
-        ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';
-        ALTER ROLE $DB_USER SET timezone TO 'UTC';
-        GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
-EOF
-    echo "PostgreSQL database and user created."
+    # Create user and database. The user does not need a password for peer auth.
+    sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;" || echo "Database $DB_NAME already exists. Skipping."
+    sudo -u postgres psql -c "CREATE USER $DB_USER;" || echo "User $DB_USER already exists. Skipping."
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+    echo "PostgreSQL database and user configured."
 }
 
 setup_application() {
@@ -85,115 +86,77 @@ setup_application() {
     echo "Creating installation directory at $APP_DIR..."
     mkdir -p $APP_DIR
 
-    # Copy the application files to the installation directory
-    # Using rsync is a good way to copy files, excluding .git
     echo "Copying application files..."
     rsync -av --progress . $APP_DIR --exclude ".git"
 
-    # --- Backend Setup ---
     echo "Setting up Python virtual environment..."
     python3 -m venv $APP_DIR/backend/venv
-
-    echo "Ensuring virtual environment scripts are executable..."
-    chmod +x $APP_DIR/backend/venv/bin/*
 
     echo "Installing Python dependencies..."
     $APP_DIR/backend/venv/bin/pip install -r $APP_DIR/backend/requirements.txt
 
-    # --- Frontend Setup ---
     echo "Installing frontend dependencies..."
-    # We need to change directory to run npm commands
     (cd $APP_DIR/frontend && npm install)
 
     echo "Building React application..."
     (cd $APP_DIR/frontend && npm run build)
 
-    # --- Create .env file ---
     echo "Creating project .env file in the root directory..."
-
-    # URL-encode the password to handle special characters in the connection string
-    URL_ENCODED_DB_PASS=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$DB_PASS'''))")
-
+    # Use a passwordless connection string for Peer Authentication
     cat <<EOF > $APP_DIR/.env
-DATABASE_URL="postgresql://$DB_USER:$URL_ENCODED_DB_PASS@localhost/$DB_NAME"
+DATABASE_URL="postgresql:///$DB_NAME"
 FLASK_APP=backend.wsgi
-# Add any other environment variables here in the future
 EOF
-
     echo "Application setup complete."
 }
 
 configure_apache() {
     print_header "Configuring Apache2"
-
-    # Path to the template and the final config file
     TEMPLATE_CONF="apache.conf"
     APACHE_CONF_PATH="/etc/apache2/sites-available/aitoolkit.conf"
-
     echo "Creating Apache configuration file at $APACHE_CONF_PATH..."
-
-    # Use sed to replace placeholders. Using a different delimiter for sed
-    # because the path contains slashes.
     sed -e "s|your_server_domain_or_ip|$SERVER_NAME|g" \
         -e "s|/path/to/your/project|$APP_DIR|g" \
         "$TEMPLATE_CONF" > "$APACHE_CONF_PATH"
-
     echo "Apache configuration file created."
 }
 
 finalize_setup() {
     print_header "Finalizing Setup"
-
     echo "Initializing database schema..."
-    # Run flask commands from the project root
     (
         cd $APP_DIR &&
-
         echo "Initializing database migrations repository (if needed)..." &&
-        # The 'init' command fails if the directory already exists.
-        # '|| true' ensures the script doesn't exit on this specific, recoverable error.
         backend/venv/bin/flask db init || true &&
-
         echo "Generating database migration..." &&
         backend/venv/bin/flask db migrate -m "Update database schema" &&
-
         echo "Applying database migration..." &&
         backend/venv/bin/flask db upgrade
     )
-
     echo "Enabling Apache site and modules..."
     a2ensite aitoolkit.conf
     a2enmod rewrite
     a2enmod wsgi
-
     echo "Restarting Apache2 service..."
     systemctl restart apache2
-
     echo "Setup finalized."
 }
 
 set_final_permissions() {
     print_header "Setting Final Ownership and Permissions"
-
     chown -R www-data:www-data $APP_DIR
-
     echo "Setting directory permissions to 755 and file permissions to 644..."
     find $APP_DIR -type d -exec chmod 755 {} \;
     find $APP_DIR -type f -exec chmod 644 {} \;
-
     echo "Setting execute permissions for venv and install scripts..."
     chmod +x $APP_DIR/backend/venv/bin/*
     chmod +x $APP_DIR/install.sh
-
     echo "Permissions set."
 }
 
 # --- Main Execution ---
-
 main() {
     print_header "AI Toolkit Interactive Installer"
-
-    # Check for root privileges
     if [ "$(id -u)" -ne 0 ]; then
         echo "This script must be run as root. Please use 'sudo ./install.sh'" >&2
         exit 1
@@ -201,10 +164,10 @@ main() {
 
     get_user_input
     install_system_deps
+    configure_postgres
     setup_database
     setup_application
     finalize_setup
-    configure_apache
     set_final_permissions
 
     print_header "Installation Complete!"

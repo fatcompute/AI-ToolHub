@@ -9,10 +9,10 @@ This platform is perfect for developers, researchers, and AI enthusiasts who wan
 ## 2. Features
 
 - **Efficient Local Inference:** All model processing is handled by the GPT4All library, which is optimized for running quantized GGUF models on consumer hardware (CPU and GPU).
-- **Model Management:**
+- **Model Management & Chat:**
     - Download any model from the GPT4All model list directly through the UI.
     - View and manage your collection of locally stored models.
-    - A simple and clean chat interface to interact with any of your downloaded models.
+    - A clean chat interface to interact with any model, featuring persistent, user-specific conversation history.
 - **User & Access Management (RBAC):**
     - A full user authentication system (register/login).
     - The first user to register is automatically granted 'admin' privileges.
