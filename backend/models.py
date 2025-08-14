@@ -12,15 +12,13 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default='user') # e.g., 'user', 'admin'
-    settings = db.Column(db.JSON, nullable=True) # To store user-specific settings
+    role = db.Column(db.String(20), nullable=False, default='user')
+    settings = db.Column(db.JSON, nullable=True)
 
     def set_password(self, password):
-        """Creates a hashed password."""
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        """Checks if the provided password matches the hash."""
         return check_password_hash(self.password_hash, password)
 
     def __repr__(self): return f'<User {self.username}>'
@@ -29,10 +27,33 @@ class LLMModel(db.Model):
     """Represents a downloaded Large Language Model."""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
-    # This will now store the GPT4All model filename, not a Hugging Face ID
-    filename = db.Column(db.String(200), unique=True, nullable=False)
+    huggingface_id = db.Column(db.String(200), unique=True, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='available')
     path = db.Column(db.String(300), nullable=True)
     def __repr__(self): return f'<LLMModel {self.name}>'
+
+class Dataset(db.Model):
+    """Represents an uploaded dataset for training."""
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(200), nullable=False)
+    path = db.Column(db.String(300), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    def __repr__(self): return f'<Dataset {self.filename}>'
+
+class TrainingJob(db.Model):
+    """Represents a fine-tuning job for an LLM."""
+    id = db.Column(db.Integer, primary_key=True)
+    model_id = db.Column(db.Integer, db.ForeignKey('llm_model.id'), nullable=False)
+    dataset_id = db.Column(db.Integer, db.ForeignKey('dataset.id'), nullable=False)
+    settings = db.Column(db.JSON, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='pending')
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    completed_at = db.Column(db.DateTime, nullable=True)
+    logs = db.Column(db.Text, nullable=True)
+    metrics = db.Column(db.JSON, nullable=True)
+    model = db.relationship('LLMModel', backref=db.backref('training_jobs', lazy=True, cascade="all, delete-orphan"))
+    dataset = db.relationship('Dataset', backref=db.backref('training_jobs', lazy=True, cascade="all, delete-orphan"))
+    def __repr__(self): return f'<TrainingJob {self.id}>'
 
 class CapturedError(db.Model):
     """Represents a runtime error captured by the application."""
@@ -40,13 +61,11 @@ class CapturedError(db.Model):
     traceback = db.Column(db.Text, nullable=False)
     file_path = db.Column(db.String(500), nullable=True)
     line_number = db.Column(db.Integer, nullable=True)
-    status = db.Column(db.String(20), nullable=False, default='new') # new, analyzing, analyzed, fixed
+    status = db.Column(db.String(20), nullable=False, default='new')
     created_at = db.Column(db.DateTime, server_default=db.func.now())
-    analysis = db.Column(db.Text, nullable=True) # Explanation from the LLM
-    proposed_fix = db.Column(db.Text, nullable=True) # Diff from the LLM
-
-    def __repr__(self):
-        return f'<CapturedError {self.id} at {self.file_path}:{self.line_number}>'
+    analysis = db.Column(db.Text, nullable=True)
+    proposed_fix = db.Column(db.Text, nullable=True)
+    def __repr__(self): return f'<CapturedError {self.id}>'
 
 class Conversation(db.Model):
     """Represents a single chat conversation."""
@@ -55,21 +74,16 @@ class Conversation(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     model_id = db.Column(db.Integer, db.ForeignKey('llm_model.id'), nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
-
     user = db.relationship('User', backref=db.backref('conversations', lazy=True, cascade="all, delete-orphan"))
     model = db.relationship('LLMModel', backref=db.backref('conversations', lazy=True))
     messages = db.relationship('ChatMessage', backref='conversation', lazy=True, cascade="all, delete-orphan")
-
-    def __repr__(self):
-        return f'<Conversation {self.id}: {self.title}>'
+    def __repr__(self): return f'<Conversation {self.id}: {self.title}>'
 
 class ChatMessage(db.Model):
     """Represents a single message within a conversation."""
     id = db.Column(db.Integer, primary_key=True)
     conversation_id = db.Column(db.Integer, db.ForeignKey('conversation.id'), nullable=False)
-    role = db.Column(db.String(10), nullable=False)  # 'user' or 'bot'
+    role = db.Column(db.String(10), nullable=False)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
-
-    def __repr__(self):
-        return f'<ChatMessage {self.id} from {self.role}>'
+    def __repr__(self): return f'<ChatMessage {self.id} from {self.role}>'

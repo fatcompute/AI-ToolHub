@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
+import TrainingDashboard from './TrainingDashboard';
 import UserManagement from './UserManagement';
 import api from '../api';
 
@@ -187,6 +188,7 @@ function Dashboard() {
                     </div>
                 </div>
             </div>
+            <TrainingDashboard models={models} user={user} />
             {user?.role === 'admin' && <UserManagement />}
         </>
     );

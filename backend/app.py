@@ -8,7 +8,7 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
-from .models import db, User, LLMModel, CapturedError, Conversation, ChatMessage
+from .models import db, User, LLMModel, Dataset, TrainingJob, CapturedError, Conversation, ChatMessage
 
 # --- Application Factory Function ---
 def create_app(config_overrides=None):
@@ -23,6 +23,7 @@ def create_app(config_overrides=None):
     app.config.from_mapping(
         SQLALCHEMY_DATABASE_URI=database_uri,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
+        UPLOAD_FOLDER=os.path.join(basedir, 'datasets'),
         JWT_SECRET_KEY=os.environ.get('JWT_SECRET_KEY', 'a-default-dev-secret-key')
     )
     if config_overrides:
@@ -57,6 +58,7 @@ def create_app(config_overrides=None):
         return {"message": "Flask backend is running!"}
 
     # --- Auth Routes ---
+    # ... (Auth routes remain the same) ...
     @app.route('/api/v1/auth/register', methods=['POST'])
     def register():
         data = request.get_json()
@@ -116,78 +118,55 @@ def create_app(config_overrides=None):
     @jwt_required()
     def get_models():
         models = llm_service.list_local_models()
-        return jsonify([{"id": m.id, "name": m.name, "filename": m.filename} for m in models])
+        return jsonify([{"id": m.id, "name": m.name, "huggingface_id": m.huggingface_id, "status": m.status} for m in models])
 
     @app.route("/api/v1/models/download", methods=['POST'])
     @jwt_required()
     def download_model_endpoint():
         data = request.get_json()
-        if not data or 'filename' not in data:
-            return jsonify({"error": "Missing 'filename' in request body"}), 400
-
-        # model_name is optional, can be used for a user-friendly alias
-        model_name = data.get('model_name')
-
+        if not data or 'huggingface_id' not in data:
+            return jsonify({"error": "Missing 'huggingface_id'"}), 400
         try:
-            model = llm_service.download_model(data['filename'], model_name)
+            model = llm_service.download_model(data['huggingface_id'])
             return jsonify({"message": "Model downloaded", "model": {"id": model.id, "name": model.name}}), 201
         except (ValueError, IOError) as e:
             return jsonify({"error": str(e)}), 500
 
+    # Chat & Conversation Routes
     @app.route("/api/v1/chat", methods=['POST'])
     @jwt_required()
     def chat_endpoint():
         data = request.get_json()
         if not data or 'model_id' not in data or 'prompt' not in data:
             return jsonify({"error": "Missing 'model_id' or 'prompt'"}), 400
-
         user_id = get_jwt_identity()['id']
         conversation_id = data.get('conversation_id')
         prompt_text = data['prompt']
         model_id = data['model_id']
-
         try:
-            # Find or create conversation
             if conversation_id:
                 conversation = Conversation.query.filter_by(id=conversation_id, user_id=user_id).first_or_404()
             else:
-                # Create a title from the first 40 chars of the prompt
                 title = prompt_text[:40] + '...' if len(prompt_text) > 40 else prompt_text
                 conversation = Conversation(title=title, user_id=user_id, model_id=model_id)
                 db.session.add(conversation)
-                db.session.flush() # Flush to get the new conversation ID
-
-            # Save user message
+                db.session.flush()
             user_message = ChatMessage(conversation_id=conversation.id, role='user', content=prompt_text)
             db.session.add(user_message)
-
-            # Generate bot response
             bot_response_text = llm_service.generate_text(model_id, prompt_text)
-
-            # Save bot message
             bot_message = ChatMessage(conversation_id=conversation.id, role='bot', content=bot_response_text)
             db.session.add(bot_message)
-
             db.session.commit()
-
-            return jsonify({
-                "response": bot_response_text,
-                "conversation_id": conversation.id
-            })
-
+            return jsonify({"response": bot_response_text, "conversation_id": conversation.id})
         except (ValueError, RuntimeError) as e:
             return jsonify({"error": str(e)}), 500
 
-    # --- Conversation Routes ---
     @app.route('/api/v1/conversations', methods=['GET'])
     @jwt_required()
     def list_conversations():
         user_id = get_jwt_identity()['id']
         conversations = Conversation.query.filter_by(user_id=user_id).order_by(Conversation.created_at.desc()).all()
-        return jsonify([
-            {"id": c.id, "title": c.title, "created_at": c.created_at.isoformat()}
-            for c in conversations
-        ])
+        return jsonify([{"id": c.id, "title": c.title, "created_at": c.created_at.isoformat()} for c in conversations])
 
     @app.route('/api/v1/conversations/<int:conv_id>', methods=['GET'])
     @jwt_required()
@@ -195,11 +174,7 @@ def create_app(config_overrides=None):
         user_id = get_jwt_identity()['id']
         conv = Conversation.query.filter_by(id=conv_id, user_id=user_id).first_or_404()
         messages = ChatMessage.query.filter_by(conversation_id=conv.id).order_by(ChatMessage.created_at.asc()).all()
-        return jsonify({
-            "id": conv.id,
-            "title": conv.title,
-            "messages": [{"role": m.role, "content": m.content} for m in messages]
-        })
+        return jsonify({"id": conv.id, "title": conv.title, "messages": [{"role": m.role, "content": m.content} for m in messages]})
 
     @app.route('/api/v1/conversations/<int:conv_id>', methods=['DELETE'])
     @jwt_required()
@@ -210,7 +185,63 @@ def create_app(config_overrides=None):
         db.session.commit()
         return jsonify({"message": "Conversation deleted successfully."})
 
-    # User Management Routes (Admin Only)
+    # Dataset Routes
+    @app.route('/api/v1/datasets', methods=['GET'])
+    @jwt_required()
+    def list_datasets():
+        datasets = Dataset.query.all()
+        return jsonify([{"id": ds.id, "filename": ds.filename, "created_at": ds.created_at.isoformat()} for ds in datasets])
+
+    @app.route('/api/v1/datasets/upload', methods=['POST'])
+    @jwt_required()
+    def upload_dataset():
+        if 'file' not in request.files: return jsonify({"error": "No file part"}), 400
+        file = request.files['file']
+        if file.filename == '': return jsonify({"error": "No selected file"}), 400
+        if file:
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            if os.path.exists(filepath): return jsonify({"error": "File with this name already exists"}), 409
+            file.save(filepath)
+            new_dataset = Dataset(filename=filename, path=filepath)
+            db.session.add(new_dataset)
+            db.session.commit()
+            return jsonify({"message": "Dataset uploaded", "dataset": {"id": new_dataset.id, "filename": filename}}), 201
+        return jsonify({"error": "File upload failed"}), 400
+
+    # Training Job Routes
+    @app.route('/api/v1/jobs', methods=['GET'])
+    @jwt_required()
+    def list_jobs():
+        jobs = TrainingJob.query.order_by(TrainingJob.created_at.desc()).all()
+        return jsonify([{"id": job.id, "model_id": job.model_id, "dataset_id": job.dataset_id, "status": job.status} for job in jobs])
+
+    @app.route('/api/v1/jobs/<int:job_id>', methods=['GET'])
+    @jwt_required()
+    def get_job(job_id):
+        job = TrainingJob.query.get_or_404(job_id)
+        return jsonify({"id": job.id, "status": job.status, "logs": job.logs, "metrics": job.metrics})
+
+    @app.route('/api/v1/jobs/start', methods=['POST'])
+    @jwt_required()
+    def start_job():
+        data = request.get_json()
+        if not data or 'model_id' not in data or 'dataset_id' not in data:
+            return jsonify({"error": "Missing 'model_id' or 'dataset_id'"}), 400
+        training_params = {"num_train_epochs": data.get('num_train_epochs', 1), "per_device_train_batch_size": data.get('per_device_train_batch_size', 1)}
+        job = TrainingJob(model_id=data['model_id'], dataset_id=data['dataset_id'], settings=training_params)
+        db.session.add(job)
+        db.session.commit()
+        python_executable = sys.executable
+        script_path = os.path.join(os.path.dirname(__file__), 'training_service.py')
+        command = [python_executable, script_path, str(job.id), '--num_train_epochs', str(training_params['num_train_epochs']), '--per_device_train_batch_size', str(training_params['per_device_train_batch_size'])]
+        if data.get('eval_dataset_id'):
+            command.extend(['--eval_dataset_id', str(data['eval_dataset_id'])])
+        subprocess.Popen(command)
+        return jsonify({"message": "Training job started", "job_id": job.id}), 202
+
+    # User Management Routes
+    # ... (User management routes remain the same) ...
     @app.route('/api/v1/users', methods=['GET'])
     @admin_required()
     def list_users():
@@ -240,43 +271,33 @@ def create_app(config_overrides=None):
         db.session.commit()
         return jsonify({"message": f"User {user.username} deleted successfully."})
 
-    # System Routes (Admin Only)
+    # System and Agent Routes
+    # ... (System and Agent routes remain the same) ...
     @app.route('/api/v1/system/config', methods=['GET'])
     @admin_required()
     def get_system_config():
-        config_data = {
-            "upload_folder": app.config.get('UPLOAD_FOLDER'),
-            "models_dir": llm_service.MODELS_DIR
-        }
+        config_data = {"upload_folder": app.config.get('UPLOAD_FOLDER'), "models_dir": llm_service.MODELS_DIR}
         return jsonify(config_data)
 
-    # Agent Routes (Admin Only)
     @app.route('/api/v1/agent/errors', methods=['GET'])
     @admin_required()
     def list_captured_errors():
         errors = CapturedError.query.order_by(CapturedError.created_at.desc()).all()
-        return jsonify([{
-            "id": e.id, "status": e.status, "file_path": e.file_path,
-            "line_number": e.line_number, "created_at": e.created_at.isoformat()
-        } for e in errors])
+        return jsonify([{"id": e.id, "status": e.status, "file_path": e.file_path, "line_number": e.line_number, "created_at": e.created_at.isoformat()} for e in errors])
 
     @app.route('/api/v1/agent/errors/<int:error_id>', methods=['GET'])
     @admin_required()
     def get_captured_error(error_id):
         error = CapturedError.query.get_or_404(error_id)
-        return jsonify({
-            "id": error.id, "status": error.status, "file_path": error.file_path,
-            "line_number": error.line_number, "created_at": error.created_at.isoformat(),
-            "traceback": error.traceback, "analysis": error.analysis, "proposed_fix": error.proposed_fix
-        })
+        return jsonify({"id": error.id, "status": error.status, "file_path": error.file_path, "line_number": error.line_number, "created_at": error.created_at.isoformat(), "traceback": error.traceback, "analysis": error.analysis, "proposed_fix": error.proposed_fix})
 
-    # --- Global Error Handler ---
+    # Global Error Handler
+    # ... (Error handler remains the same) ...
     @app.errorhandler(Exception)
     def handle_exception(e):
         from werkzeug.exceptions import HTTPException
         if isinstance(e, HTTPException):
             return e
-
         tb_str = traceback.format_exc()
         try:
             _, _, tb = sys.exc_info()
@@ -290,13 +311,10 @@ def create_app(config_overrides=None):
                 filename, lineno = None, None
         except Exception:
             filename, lineno = None, None
-
         error_record = CapturedError(traceback=tb_str, file_path=filename, line_number=lineno)
         db.session.add(error_record)
         db.session.commit()
-
         agent_service.analyze_error_async(error_record.id)
-
         return jsonify({"error": "An internal server error occurred. The issue has been logged and is being analyzed."}), 500
 
     return app
