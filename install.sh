@@ -74,9 +74,10 @@ configure_postgres() {
 setup_database() {
     print_header "Setting Up PostgreSQL Database"
     # Create user and database. The user does not need a password for peer auth.
+    # The username must be double-quoted because it contains a hyphen.
     sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;" || echo "Database $DB_NAME already exists. Skipping."
-    sudo -u postgres psql -c "CREATE USER $DB_USER;" || echo "User $DB_USER already exists. Skipping."
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+    sudo -u postgres psql -c "CREATE USER \"$DB_USER\";" || echo "User $DB_USER already exists. Skipping."
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO \"$DB_USER\";"
     echo "PostgreSQL database and user configured."
 }
 
