@@ -89,13 +89,21 @@ configure_apache() {
 
 finalize_setup() {
     print_header "Finalizing Setup"
+
+    echo "Ensuring clean state for database setup..."
+    rm -f $APP_DIR/backend/app.db
+    rm -rf $APP_DIR/backend/migrations
+
     echo "Initializing database schema..."
     (
         cd $APP_DIR &&
-        echo "Initializing database migrations repository (if needed)..." &&
-        backend/venv/bin/flask db init || true &&
-        echo "Generating database migration..." &&
-        backend/venv/bin/flask db migrate -m "Update database schema" &&
+
+        echo "Initializing database migrations repository..." &&
+        backend/venv/bin/flask db init &&
+
+        echo "Generating initial database migration..." &&
+        backend/venv/bin/flask db migrate -m "Initial database schema" &&
+
         echo "Applying database migration..." &&
         backend/venv/bin/flask db upgrade
     )
