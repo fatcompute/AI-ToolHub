@@ -3,11 +3,6 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
-# --- Configuration Variables ---
-# Hardcoding these for simplicity and robustness with Peer Authentication
-DB_NAME="aitoolkit_db"
-DB_USER="www-data" # Use the Apache user for Peer Authentication
-
 # --- Helper Functions ---
 print_header() {
     echo "================================================================="
@@ -33,8 +28,7 @@ get_user_input() {
     echo "Configuration:"
     echo "Installation Directory: $APP_DIR"
     echo "Server Name/IP: $SERVER_NAME"
-    echo "Database Name: $DB_NAME (hardcoded)"
-    echo "Database User: $DB_USER (hardcoded)"
+    echo "Database: SQLite (default)"
     echo "---"
     read -p "Is this correct? (y/n) " -n 1 -r
     echo
@@ -47,38 +41,8 @@ get_user_input() {
 install_system_deps() {
     print_header "Installing System Dependencies"
     apt-get update
-    apt-get install -y python3-pip python3-venv apache2 postgresql postgresql-contrib libapache2-mod-wsgi-py3 npm
+    apt-get install -y python3-pip python3-venv apache2 libapache2-mod-wsgi-py3 npm
     echo "System dependencies installed."
-}
-
-configure_postgres() {
-    print_header "Configuring PostgreSQL Authentication"
-    # Find the pg_hba.conf file
-    PG_HBA_CONF=$(sudo -u postgres psql -t -P format=unaligned -c 'show hba_file;')
-
-    echo "Found pg_hba.conf at: $PG_HBA_CONF"
-
-    # Check if the peer auth rule already exists
-    if grep -q "local *$DB_NAME *$DB_USER *peer" "$PG_HBA_CONF"; then
-        echo "PostgreSQL peer authentication rule already exists. Skipping."
-    else
-        echo "Adding peer authentication rule to pg_hba.conf..."
-        # Add a rule to allow the 'www-data' user to connect to the specific db via peer auth
-        echo "local    $DB_NAME    $DB_USER    peer" >> "$PG_HBA_CONF"
-    fi
-
-    echo "Restarting PostgreSQL service to apply changes..."
-    systemctl restart postgresql
-}
-
-setup_database() {
-    print_header "Setting Up PostgreSQL Database"
-    # Create user and database. The user does not need a password for peer auth.
-    # The username must be double-quoted because it contains a hyphen.
-    sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;" || echo "Database $DB_NAME already exists. Skipping."
-    sudo -u postgres psql -c "CREATE USER \"$DB_USER\";" || echo "User $DB_USER already exists. Skipping."
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO \"$DB_USER\";"
-    echo "PostgreSQL database and user configured."
 }
 
 setup_application() {
@@ -103,10 +67,11 @@ setup_application() {
     (cd $APP_DIR/frontend && npm run build)
 
     echo "Creating project .env file in the root directory..."
-    # Use a passwordless connection string for Peer Authentication
+    # The DATABASE_URL is now omitted, so the app will use its default SQLite config.
     cat <<EOF > $APP_DIR/.env
-DATABASE_URL="postgresql:///$DB_NAME"
 FLASK_APP=backend.wsgi
+# For production, you should set a strong, random JWT_SECRET_KEY here
+# JWT_SECRET_KEY=your_super_secret_key
 EOF
     echo "Application setup complete."
 }
@@ -165,10 +130,9 @@ main() {
 
     get_user_input
     install_system_deps
-    configure_postgres
-    setup_database
     setup_application
     finalize_setup
+    configure_apache
     set_final_permissions
 
     print_header "Installation Complete!"

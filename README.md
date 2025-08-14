@@ -4,7 +4,7 @@
 
 AI Toolkit is a comprehensive, self-hosted web application designed to give you full control over your local Large Language Models (LLMs). It provides a powerful and intuitive interface to download, manage, chat with, and fine-tune open-source models on your own hardware.
 
-This platform is perfect for developers, researchers, and AI enthusiasts who want to experiment with and develop on top of LLMs without relying on third-party APIs, ensuring privacy, security, and full control over the entire pipeline.
+This version is configured to be self-contained, using a local SQLite database by default, which removes the need for an external database server and simplifies installation.
 
 ## 2. Features
 
@@ -15,33 +15,39 @@ This platform is perfect for developers, researchers, and AI enthusiasts who wan
     - A clean chat interface to interact with any model, featuring persistent, user-specific conversation history.
 - **Model Fine-Tuning & Evaluation:**
     - Upload your own training and evaluation datasets.
-    - Launch fine-tuning jobs, optionally providing an evaluation set to track performance against a separate dataset.
+    - Launch fine-tuning jobs and track performance against an evaluation set.
     - Monitor the status and progress of training jobs in real-time.
 - **Performance Analytics & Visualization:**
     - Automatically captures and stores key training and evaluation metrics (e.g., loss, accuracy, perplexity).
-    - Visualizes performance with charts comparing Training vs. Evaluation Loss to diagnose overfitting.
-    - Displays final evaluation scores in a summary scorecard for at-a-glance model assessment.
+    - Visualizes performance with charts comparing Training vs. Evaluation Loss.
 - **Role-Based Access Control (RBAC):**
     - A full user authentication system (register/login).
     - The first user to register is automatically granted 'admin' privileges.
-    - Admins can manage all users (update roles, delete users) through a dedicated UI.
-- **AI Diagnosis Agent:** The application includes a built-in agent that automatically captures unhandled backend errors and proposes a code fix, which administrators can view in a dedicated "Code Health" dashboard.
-- **Configuration & Settings:**
-    - A dedicated settings page allows users to customize their experience (e.g., theme) and set default parameters for training jobs.
-    - Admins can view system-level configuration paths.
-- **Dark-Themed UI:** A sleek, modern, and user-friendly interface built with React, including a Light mode toggle.
+    - Admins can manage all users through a dedicated UI.
+- **AI Diagnosis Agent:** Automatically captures backend errors and uses an LLM to propose a fix, which admins can view in the "Code Health" dashboard.
+- **Configuration & Settings:** A dedicated settings page for user preferences (like themes) and system configuration viewing.
 
 ## 3. Tech Stack
 
 - **Backend:** Python 3, Flask
 - **Frontend:** React.js
-- **Database:** PostgreSQL (for production), SQLite (for development)
-- **LLM Interaction:** PyTorch, Hugging Face `transformers` & `huggingface_hub`
+- **Database:** SQLite
+- **LLM Interaction:** PyTorch, Hugging Face `transformers`
 - **Deployment:** Apache2 with `mod_wsgi` on Ubuntu Server
 
 ## 4. Deployment Guide (Ubuntu Server)
 
-This guide walks you through deploying the AI Toolkit on a fresh Ubuntu Server using the automated installation script. For a manual guide, you can use the `install.sh` script as a command reference.
+This guide walks you through deploying the AI Toolkit on a fresh Ubuntu Server using the automated installation script.
+
+### 4.1. Prerequisites
+
+- An Ubuntu Server (20.04 or later recommended).
+- A user with `sudo` privileges.
+- An active internet connection to download dependencies.
+
+### 4.2. Automated Installation (Recommended)
+
+The installation script will handle installing all necessary packages (like Python, Apache, etc.), configuring the application, and starting the web server.
 
 1.  **Clone the Repository:**
     ```bash
@@ -54,7 +60,7 @@ This guide walks you through deploying the AI Toolkit on a fresh Ubuntu Server u
     chmod +x install.sh
     ```
 3.  **Run the Script as Root:**
-    The script will prompt you for all necessary configuration details.
+    The script will ask for the installation directory and your server's domain name.
     ```bash
     sudo ./install.sh
     ```
