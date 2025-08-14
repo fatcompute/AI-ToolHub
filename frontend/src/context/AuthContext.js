@@ -29,16 +29,12 @@ export const AuthProvider = ({ children }) => {
         }
     }, [token, fetchUserProfile]);
 
-    const login = async (email, password) => {
-        const response = await api.post('/auth/login', { email, password });
+    const login = async (username, password) => {
+        const response = await api.post('/auth/session-login', { username, password });
         const { access_token } = response.data;
         localStorage.setItem('token', access_token);
         setToken(access_token);
         // The useEffect will trigger fetchUserProfile
-    };
-
-    const register = async (username, email, password) => {
-        await api.post('/auth/register', { username, email, password });
     };
 
     const logout = () => {
@@ -54,7 +50,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, register, loading, refreshUser }}>
+        <AuthContext.Provider value={{ user, token, login, logout, loading, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

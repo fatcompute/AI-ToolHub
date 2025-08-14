@@ -58,34 +58,39 @@ def create_app(config_overrides=None):
         return {"message": "Flask backend is running!"}
 
     # --- Auth Routes ---
-    # ... (Auth routes remain the same) ...
-    @app.route('/api/v1/auth/register', methods=['POST'])
-    def register():
+    @app.route('/api/v1/auth/session-login', methods=['POST'])
+    def session_login():
         data = request.get_json()
-        if not data or 'username' not in data or 'email' not in data or 'password' not in data:
-            return jsonify({"error": "Missing username, email, or password"}), 400
-        if User.query.filter_by(username=data['username']).first():
-            return jsonify({"error": "Username already exists"}), 409
-        if User.query.filter_by(email=data['email']).first():
-            return jsonify({"error": "Email already exists"}), 409
-        role = 'admin' if not User.query.first() else 'user'
-        new_user = User(username=data['username'], email=data['email'], role=role)
-        new_user.set_password(data['password'])
-        db.session.add(new_user)
-        db.session.commit()
-        return jsonify({"message": f"User {new_user.username} created successfully"}), 201
+        if not data or 'username' not in data or 'password' not in data:
+            return jsonify({"error": "Missing username or password"}), 400
 
-    @app.route('/api/v1/auth/login', methods=['POST'])
-    def login():
-        data = request.get_json()
-        if not data or 'email' not in data or 'password' not in data:
-            return jsonify({"error": "Missing email or password"}), 400
-        user = User.query.filter_by(email=data['email']).first()
-        if user and user.check_password(data['password']):
-            identity = {"id": user.id, "role": user.role}
-            access_token = create_access_token(identity=identity)
-            return jsonify(access_token=access_token)
-        return jsonify({"error": "Invalid credentials"}), 401
+        username = data['username']
+        password = data['password']
+
+        user = User.query.filter_by(username=username).first()
+
+        if user:
+            # User exists, check password
+            if not user.check_password(password):
+                return jsonify({"error": "Invalid credentials"}), 401
+        else:
+            # User does not exist, create a new one
+            role = 'admin' if not User.query.first() else 'user'
+            # A simple email is required by the model, we can generate one.
+            email = f"{username.lower()}@localhost.local"
+
+            if User.query.filter_by(email=email).first():
+                return jsonify({"error": "A user with a similar generated email already exists."}), 409
+
+            user = User(username=username, email=email, role=role)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+
+        # Issue token for the logged-in or newly created user
+        identity = {"id": user.id, "role": user.role}
+        access_token = create_access_token(identity=identity)
+        return jsonify(access_token=access_token)
 
     @app.route('/api/v1/auth/profile', methods=['GET'])
     @jwt_required()
@@ -185,63 +190,7 @@ def create_app(config_overrides=None):
         db.session.commit()
         return jsonify({"message": "Conversation deleted successfully."})
 
-    # Dataset Routes
-    @app.route('/api/v1/datasets', methods=['GET'])
-    @jwt_required()
-    def list_datasets():
-        datasets = Dataset.query.all()
-        return jsonify([{"id": ds.id, "filename": ds.filename, "created_at": ds.created_at.isoformat()} for ds in datasets])
-
-    @app.route('/api/v1/datasets/upload', methods=['POST'])
-    @jwt_required()
-    def upload_dataset():
-        if 'file' not in request.files: return jsonify({"error": "No file part"}), 400
-        file = request.files['file']
-        if file.filename == '': return jsonify({"error": "No selected file"}), 400
-        if file:
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            if os.path.exists(filepath): return jsonify({"error": "File with this name already exists"}), 409
-            file.save(filepath)
-            new_dataset = Dataset(filename=filename, path=filepath)
-            db.session.add(new_dataset)
-            db.session.commit()
-            return jsonify({"message": "Dataset uploaded", "dataset": {"id": new_dataset.id, "filename": filename}}), 201
-        return jsonify({"error": "File upload failed"}), 400
-
-    # Training Job Routes
-    @app.route('/api/v1/jobs', methods=['GET'])
-    @jwt_required()
-    def list_jobs():
-        jobs = TrainingJob.query.order_by(TrainingJob.created_at.desc()).all()
-        return jsonify([{"id": job.id, "model_id": job.model_id, "dataset_id": job.dataset_id, "status": job.status} for job in jobs])
-
-    @app.route('/api/v1/jobs/<int:job_id>', methods=['GET'])
-    @jwt_required()
-    def get_job(job_id):
-        job = TrainingJob.query.get_or_404(job_id)
-        return jsonify({"id": job.id, "status": job.status, "logs": job.logs, "metrics": job.metrics})
-
-    @app.route('/api/v1/jobs/start', methods=['POST'])
-    @jwt_required()
-    def start_job():
-        data = request.get_json()
-        if not data or 'model_id' not in data or 'dataset_id' not in data:
-            return jsonify({"error": "Missing 'model_id' or 'dataset_id'"}), 400
-        training_params = {"num_train_epochs": data.get('num_train_epochs', 1), "per_device_train_batch_size": data.get('per_device_train_batch_size', 1)}
-        job = TrainingJob(model_id=data['model_id'], dataset_id=data['dataset_id'], settings=training_params)
-        db.session.add(job)
-        db.session.commit()
-        python_executable = sys.executable
-        script_path = os.path.join(os.path.dirname(__file__), 'training_service.py')
-        command = [python_executable, script_path, str(job.id), '--num_train_epochs', str(training_params['num_train_epochs']), '--per_device_train_batch_size', str(training_params['per_device_train_batch_size'])]
-        if data.get('eval_dataset_id'):
-            command.extend(['--eval_dataset_id', str(data['eval_dataset_id'])])
-        subprocess.Popen(command)
-        return jsonify({"message": "Training job started", "job_id": job.id}), 202
-
-    # User Management Routes
-    # ... (User management routes remain the same) ...
+    # User Management Routes (Admin Only)
     @app.route('/api/v1/users', methods=['GET'])
     @admin_required()
     def list_users():
@@ -322,6 +271,6 @@ def create_app(config_overrides=None):
 # --- Main Execution ---
 if __name__ == "__main__":
     app = create_app()
-    with app.app_context():
-        db.create_all()
+    # Note: db.create_all() is removed from here. Use 'flask db upgrade'.
+    # The install.sh script will handle the initial migration.
     app.run(host="0.0.0.0", port=5000, debug=True)

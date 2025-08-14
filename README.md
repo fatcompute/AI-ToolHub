@@ -20,10 +20,13 @@ This version is configured to be self-contained, using a local SQLite database b
 - **Performance Analytics & Visualization:**
     - Automatically captures and stores key training and evaluation metrics (e.g., loss, accuracy, perplexity).
     - Visualizes performance with charts comparing Training vs. Evaluation Loss.
+- **"Upsert" Session-Based Login:**
+    - A streamlined authentication system. Users enter a username and password.
+    - If the user doesn't exist, an account is created on the fly. If they exist, they are logged in.
+    - This supports persistent, per-user data (like conversation history) without a separate registration step.
 - **Role-Based Access Control (RBAC):**
-    - A full user authentication system (register/login).
-    - The first user to register is automatically granted 'admin' privileges.
-    - Admins can manage all users through a dedicated UI.
+    - The first user to be created is automatically granted 'admin' privileges.
+    - Admins can manage all users (update roles, delete users) through a dedicated UI.
 - **AI Diagnosis Agent:** Automatically captures backend errors and uses an LLM to propose a fix, which admins can view in the "Code Health" dashboard.
 - **Configuration & Settings:** A dedicated settings page for user preferences (like themes) and system configuration viewing.
 
