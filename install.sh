@@ -41,7 +41,17 @@ get_user_input() {
 install_system_deps() {
     print_header "Installing System Dependencies"
     apt-get update
-    apt-get install -y python3-pip python3-venv apache2 libapache2-mod-wsgi-py3 npm
+    # Install base dependencies and curl
+    apt-get install -y python3-pip python3-venv apache2 libapache2-mod-wsgi-py3 curl
+
+    # Use NodeSource repository for a stable version of Node.js and npm
+    echo "Setting up NodeSource repository for Node.js..."
+    # The -fsSL flags make curl silent on success and fail on error
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+
+    echo "Installing Node.js (which includes npm)..."
+    apt-get install -y nodejs
+
     echo "System dependencies installed."
 }
 
