@@ -102,20 +102,23 @@ finalize_setup() {
 
     echo "Ensuring clean state for database setup..."
     rm -f $APP_DIR/backend/app.db
-    rm -rf $APP_DIR/backend/migrations
+    if [ -d "$APP_DIR/migrations" ]; then
+        echo "Removing existing migrations directory..."
+        rm -rf $APP_DIR/migrations
+    fi
 
     echo "Initializing database schema..."
     (
-        cd $APP_DIR &&
+        cd $APP_DIR/backend &&
 
         echo "Initializing database migrations repository..." &&
-        backend/venv/bin/flask db init &&
+        venv/bin/flask db init --directory $APP_DIR/migrations &&
 
         echo "Generating initial database migration..." &&
-        backend/venv/bin/flask db migrate -m "Initial database schema" &&
+        venv/bin/flask db migrate -m "Initial database schema" --directory $APP_DIR/migrations &&
 
         echo "Applying database migration..." &&
-        backend/venv/bin/flask db upgrade
+        venv/bin/flask db upgrade --directory $APP_DIR/migrations
     )
     echo "Enabling Apache site and modules..."
     a2ensite aitoolkit.conf
