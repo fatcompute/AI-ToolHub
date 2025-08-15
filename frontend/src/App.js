@@ -1,11 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Header from './components/Header';
-import ModelManagement from './components/ModelManagement';
-import FineTuning from './components/FineTuning';
-import Evaluation from './components/Evaluation';
-import CodeHealth from './components/CodeHealth';
-import Home from './components/Home';
+import Dashboard from './components/Dashboard';
+import TrainingDashboard from './components/TrainingDashboard';
+import JobAnalytics from './components/JobAnalytics';
 import './App.css';
 
 function App() {
@@ -15,11 +13,10 @@ function App() {
         <Header />
         <main>
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/models" element={<ModelManagement />} />
-            <Route path="/finetune" element={<FineTuning />} />
-            <Route path="/evaluate" element={<Evaluation />} />
-            <Route path="/code-health" element={<CodeHealth />} />
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/models" element={<Dashboard />} />
+            <Route path="/training" element={<TrainingDashboard />} />
+            <Route path="/analytics" element={<JobAnalytics />} />
           </Routes>
         </main>
       </div>

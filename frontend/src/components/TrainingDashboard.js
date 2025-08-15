@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api';
 import JobAnalytics from './JobAnalytics';
-import { AuthContext } from '../context/AuthContext';
 
 function TrainingDashboard({ models }) {
-    const { user } = useContext(AuthContext);
 
     // State for datasets
     const [datasets, setDatasets] = useState([]);
@@ -59,12 +57,6 @@ function TrainingDashboard({ models }) {
         fetchJobs();
     }, [fetchDatasets, fetchJobs]);
 
-    useEffect(() => {
-        if (user?.settings) {
-            setEpochs(user.settings.default_epochs || 1);
-            setBatchSize(user.settings.default_batch_size || 1);
-        }
-    }, [user]);
 
     useEffect(() => {
         const interval = setInterval(() => {

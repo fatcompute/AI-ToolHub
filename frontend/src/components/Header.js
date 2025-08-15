@@ -1,14 +1,15 @@
 import React from 'react';
-import { Link } from 'react-router-dom'; // This will be removed, but keeping for now to avoid breaking the build
+import { Link } from 'react-router-dom';
 
 function Header() {
     return (
         <header className="App-header">
             <div className="header-content">
-                {/* The Link will be replaced with a simple 'a' tag or just text, as routing is removed */}
-                <a href="/" className="logo"><h1>AI Toolkit</h1></a>
+                <Link to="/" className="logo"><h1>AI Toolkit</h1></Link>
                 <nav>
-                    {/* All user-specific navigation is removed */}
+                    <Link to="/models">Models</Link>
+                    <Link to="/training">Training</Link>
+                    <Link to="/analytics">Analytics</Link>
                 </nav>
             </div>
         </header>
