@@ -1,71 +1,65 @@
-# AI Toolkit - Local LLM Management & Training Platform
+# Local AI Management and Development Platform
 
-## 1. Project Overview
+This project is a self-hosted web application that provides a comprehensive suite of tools for managing, fine-tuning, and evaluating local Large Language Models (LLMs). It also includes a unique "Code Health" feature that uses an LLM to diagnose and suggest fixes for its own backend errors.
 
-AI Toolkit is a comprehensive, self-hosted web application designed to give you full control over your local Large Language Models (LLMs). It provides a powerful and intuitive interface to download, manage, chat with, and fine-tune open-source models on your own hardware.
+The application is designed to be deployed on a bare-metal Ubuntu server and run without requiring user authentication, providing a simple, single-user experience.
 
-This version is configured to be self-contained, using a local SQLite database by default, which removes the need for an external database server and simplifies installation.
+## Features
 
-## 2. Features
+*   **Model Management:** Download and manage open-source LLMs from the Hugging Face Hub. Chat with the models through a simple interface.
+*   **Fine-Tuning:** Fine-tune models on your own datasets. Upload a dataset in CSV format, configure training parameters, and run the fine-tuning process.
+*   **Evaluation:** Evaluate fine-tuned models to assess their performance. The system calculates and stores metrics like perplexity, accuracy, and loss.
+*   **Code Health:** A diagnostic tool for developers. The application catches its own backend exceptions, sends the traceback and relevant source code to a designated LLM, and displays the AI-generated analysis and suggested fix in a dashboard.
 
-- **Local-First Processing:** All model processing, inference, and training leverages your local machine's hardware (including GPU acceleration via PyTorch).
-- **Model Management & Chat:**
-    - Download any open-source model from the Hugging Face Hub directly through the UI.
-    - View and manage your collection of locally stored models.
-    - A clean chat interface to interact with any model, featuring persistent, user-specific conversation history.
-- **Model Fine-Tuning & Evaluation:**
-    - Upload your own training and evaluation datasets.
-    - Launch fine-tuning jobs and track performance against an evaluation set.
-    - Monitor the status and progress of training jobs in real-time.
-- **Performance Analytics & Visualization:**
-    - Automatically captures and stores key training and evaluation metrics (e.g., loss, accuracy, perplexity).
-    - Visualizes performance with charts comparing Training vs. Evaluation Loss.
-- **"Upsert" Session-Based Login:**
-    - A streamlined authentication system. Users enter a username and password.
-    - If the user doesn't exist, an account is created on the fly. If they exist, they are logged in.
-    - This supports persistent, per-user data (like conversation history) without a separate registration step.
-- **Role-Based Access Control (RBAC):**
-    - The first user to be created is automatically granted 'admin' privileges.
-    - Admins can manage all users (update roles, delete users) through a dedicated UI.
-- **AI Diagnosis Agent:** Automatically captures backend errors and uses an LLM to propose a fix, which admins can view in the "Code Health" dashboard.
-- **Configuration & Settings:** A dedicated settings page for user preferences (like themes) and system configuration viewing.
+## Tech Stack
 
-## 3. Tech Stack
+*   **Backend:** Flask (Python)
+*   **Frontend:** React (JavaScript)
+*   **Database:** PostgreSQL
+*   **LLM Engine:** Hugging Face `transformers`
+*   **Deployment:** Apache on Ubuntu
 
-- **Backend:** Python 3, Flask
-- **Frontend:** React.js
-- **Database:** SQLite
-- **LLM Interaction:** PyTorch, Hugging Face `transformers`
-- **Deployment:** Apache2 with `mod_wsgi` on Ubuntu Server
+## Installation
 
-## 4. Deployment Guide (Ubuntu Server)
+This application is designed for deployment on a fresh Ubuntu 22.04 LTS server. The following steps will guide you through the installation process.
 
-This guide walks you through deploying the AI Toolkit on a fresh Ubuntu Server using the automated installation script.
+### 1. Prerequisites
 
-### 4.1. Prerequisites
+Ensure you have an Ubuntu 22.04 server with `git` installed.
 
-- An Ubuntu Server (20.04 or later recommended).
-- A user with `sudo` privileges.
-- An active internet connection to download dependencies.
+### 2. Clone the Repository
 
-### 4.2. Automated Installation (Recommended)
+Clone this repository to your server:
+```bash
+git clone <repository_url>
+cd <repository_name>
+```
 
-The installation script will handle installing all necessary packages (like Python, Apache, etc.), configuring the application, and starting the web server.
+### 3. Run the Installation Script
 
-1.  **Clone the Repository:**
-    ```bash
-    # Replace with your repository URL
-    git clone https://github.com/your-repo/ai-toolkit.git
-    cd ai-toolkit
-    ```
-2.  **Make the Script Executable:**
-    ```bash
-    chmod +x install.sh
-    ```
-3.  **Run the Script as Root:**
-    The script will ask for the installation directory and your server's domain name.
-    ```bash
-    sudo ./install.sh
-    ```
-4.  **Access the Application:**
-    Once the script finishes, you can access the application by navigating to `http://your_server_domain_or_ip` in your web browser. The first step will be to register your admin account.
+The `install.sh` script automates the entire setup process. It will:
+- Install system dependencies (Apache, PostgreSQL, Python, etc.).
+- Set up a Python virtual environment.
+- Configure the PostgreSQL database and user.
+- Install Python and Node.js dependencies.
+- Build the React frontend.
+- Configure and enable an Apache virtual host for the application.
+
+To run the script, make it executable and run it with `sudo`:
+```bash
+chmod +x install.sh
+sudo ./install.sh
+```
+
+The script will prompt you for a database password during execution. Please enter a secure password when prompted.
+
+### 4. Access the Application
+
+Once the script finishes, the application will be accessible via your server's IP address or domain name in a web browser. No login is required.
+
+## Usage
+
+-   **Model Management:** Navigate to the "Models" page to download new models or chat with existing ones.
+-   **Fine-Tuning:** Go to the "Fine-Tune" page, upload a CSV dataset, and start the training job.
+-   **Evaluation:** Visit the "Evaluate" page to measure the performance of your fine-tuned models.
+-   **Code Health:** If backend errors occur, they will appear on the "Code Health" page with an AI-generated analysis.
