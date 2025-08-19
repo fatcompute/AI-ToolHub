@@ -152,9 +152,9 @@ main() {
     get_user_input
     install_system_deps
     setup_application
+    set_final_permissions
     finalize_setup
     configure_apache
-    set_final_permissions
 
     print_header "Installation Complete!"
     echo "You should now be able to access the application at your specified domain/IP."
