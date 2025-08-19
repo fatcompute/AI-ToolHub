@@ -109,6 +109,7 @@ finalize_setup() {
 
     echo "Initializing database schema..."
     (
+        export FLASK_APP=backend.wsgi
         cd $APP_DIR/backend &&
 
         echo "Initializing database migrations repository..." &&

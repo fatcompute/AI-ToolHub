@@ -1,6 +1,6 @@
 import os
 import torch
-from huggingface_hub import snapshot_download
+from huggingface_hub import HfApi, snapshot_download
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from .models import db, LLMModel
 
@@ -16,33 +16,39 @@ model_cache = {
     "device": "cuda" if torch.cuda.is_available() else "cpu"
 }
 
+def search_huggingface_models(query: str, limit: int = 20):
+    """Searches the Hugging Face Hub for models."""
+    api = HfApi()
+    models = api.list_models(search=query, sort='downloads', direction=-1, limit=limit)
+    return [{"id": model.modelId, "name": model.modelId, "author": model.author} for model in models]
+
 def list_local_models():
     """Lists all models available in the local database."""
     return LLMModel.query.all()
 
-def download_model(huggingface_id: str):
+def download_model(model_id: str):
     """
     Downloads a model from Hugging Face Hub, saves it locally,
     and adds its metadata to the database.
     """
-    if LLMModel.query.filter_by(huggingface_id=huggingface_id).first():
-        raise ValueError(f"Model '{huggingface_id}' is already downloaded.")
+    if LLMModel.query.filter_by(huggingface_id=model_id).first():
+        raise ValueError(f"Model '{model_id}' is already downloaded.")
 
-    local_model_name = huggingface_id.replace('/', '_')
+    local_model_name = model_id.replace('/', '_')
     model_path = os.path.join(MODELS_DIR, local_model_name)
 
     try:
         snapshot_download(
-            repo_id=huggingface_id,
+            repo_id=model_id,
             local_dir=model_path,
             local_dir_use_symlinks=False
         )
     except Exception as e:
-        raise IOError(f"Failed to download model '{huggingface_id}': {e}") from e
+        raise IOError(f"Failed to download model '{model_id}': {e}") from e
 
     new_model = LLMModel(
         name=local_model_name,
-        huggingface_id=huggingface_id,
+        huggingface_id=model_id,
         status='available',
         path=model_path
     )

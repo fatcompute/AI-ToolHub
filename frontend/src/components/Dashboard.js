@@ -8,6 +8,8 @@ function Dashboard() {
     const [newModelName, setNewModelName] = useState('');
     const [newModelFilename, setNewModelFilename] = useState('');
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchResults, setSearchResults] = useState([]);
     const [managementError, setManagementError] = useState('');
 
     // State for chat
@@ -45,18 +47,29 @@ function Dashboard() {
         fetchConversations();
     }, [fetchModels, fetchConversations]);
 
-    const handleDownloadModel = async (e) => {
+    const handleSearchModels = async (e) => {
         e.preventDefault();
-        if (!newModelFilename) {
-            setManagementError('Please enter a Hugging Face Model Name.');
+        if (!modelSearchTerm) {
+            setManagementError('Please enter a search term.');
             return;
         }
+        setIsSearching(true);
+        setManagementError('');
+        try {
+            const response = await api.get(`/models/search?q=${modelSearchTerm}`);
+            setSearchResults(response.data);
+        } catch (error) {
+            setManagementError(error.response?.data?.error || 'Failed to search for models.');
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const handleDownloadModel = async (modelId) => {
         setIsDownloading(true);
         setManagementError('');
         try {
-            await api.post('/models/download', { model_name: newModelFilename });
-            setNewModelName('');
-            setNewModelFilename('');
+            await api.post('/models/download', { model_id: modelId });
             await fetchModels();
         } catch (error) {
             setManagementError(error.response?.data?.error || 'Failed to download model.');
@@ -136,12 +149,25 @@ function Dashboard() {
             <div className="model-management">
                 <h2>Model Management</h2>
                 {managementError && <p className="error-message">{managementError}</p>}
-                <form onSubmit={handleDownloadModel} className="download-form">
-                    <input type="text" value={newModelFilename} onChange={(e) => setNewModelFilename(e.target.value)} placeholder="Hugging Face Model Name" required />
-                    <button type="submit" disabled={isDownloading}>{isDownloading ? 'Downloading...' : 'Download'}</button>
+                <form onSubmit={handleSearchModels} className="download-form">
+                    <input type="text" value={modelSearchTerm} onChange={(e) => setModelSearchTerm(e.target.value)} placeholder="Search for models on Hugging Face..." required />
+                    <button type="submit" disabled={isSearching}>{isSearching ? 'Searching...' : 'Search'}</button>
                 </form>
+                <div className="search-results">
+                    <h3>Search Results</h3>
+                    <ul className="model-list">
+                        {searchResults.map(model => (
+                            <li key={model.id} className="model-list-item">
+                                <span>{model.name} by {model.author}</span>
+                                <button onClick={() => handleDownloadModel(model.id)} disabled={isDownloading}>
+                                    {isDownloading ? 'Downloading...' : 'Download'}
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
                 <h3 style={{marginTop: '1.5rem'}}>Available Models</h3>
-                <input type="text" placeholder="Search models..." className="search-bar" value={modelSearchTerm} onChange={(e) => setModelSearchTerm(e.target.value)} />
+                <input type="text" placeholder="Search local models..." className="search-bar" value={localModelSearchTerm} onChange={(e) => setLocalModelSearchTerm(e.target.value)} />
                 <ul className="model-list">
                     {filteredModels.map(model => (
                         <li key={model.id} className={`model-list-item ${selectedModel?.id === model.id ? 'selected' : ''}`} onClick={() => setSelectedModel(model)}>

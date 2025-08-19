@@ -47,13 +47,24 @@ def create_app(config_overrides=None):
         models = llm_service.list_local_models()
         return jsonify([{"id": m.id, "name": m.name, "huggingface_id": m.huggingface_id, "status": m.status} for m in models])
 
+    @app.route("/api/v1/models/search", methods=['GET'])
+    def search_models_endpoint():
+        query = request.args.get('q')
+        if not query:
+            return jsonify({"error": "Missing 'q' parameter"}), 400
+        try:
+            results = llm_service.search_huggingface_models(query)
+            return jsonify(results)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/v1/models/download", methods=['POST'])
     def download_model_endpoint():
         data = request.get_json()
-        if not data or 'huggingface_id' not in data:
-            return jsonify({"error": "Missing 'huggingface_id'"}), 400
+        if not data or 'model_id' not in data:
+            return jsonify({"error": "Missing 'model_id'"}), 400
         try:
-            model = llm_service.download_model(data['huggingface_id'])
+            model = llm_service.download_model(data['model_id'])
             return jsonify({"message": "Model downloaded", "model": {"id": model.id, "name": model.name}}), 201
         except (ValueError, IOError) as e:
             return jsonify({"error": str(e)}), 500
