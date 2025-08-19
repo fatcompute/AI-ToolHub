@@ -3,7 +3,6 @@ import api from '../api';
 import JobAnalytics from './JobAnalytics';
 
 function TrainingDashboard({ models }) {
-
     // State for datasets
     const [datasets, setDatasets] = useState([]);
     const [selectedFile, setSelectedFile] = useState(null);
@@ -56,7 +55,6 @@ function TrainingDashboard({ models }) {
         fetchDatasets();
         fetchJobs();
     }, [fetchDatasets, fetchJobs]);
-
 
     useEffect(() => {
         const interval = setInterval(() => {

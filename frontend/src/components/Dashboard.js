@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import TrainingDashboard from './TrainingDashboard';
 import api from '../api';
 
 function Dashboard() {
-
     // State for model management
     const [models, setModels] = useState([]);
     const [modelSearchTerm, setModelSearchTerm] = useState('');
@@ -50,13 +48,13 @@ function Dashboard() {
     const handleDownloadModel = async (e) => {
         e.preventDefault();
         if (!newModelFilename) {
-            setManagementError('Please enter a GPT4All Model Filename.');
+            setManagementError('Please enter a Hugging Face Model Name.');
             return;
         }
         setIsDownloading(true);
         setManagementError('');
         try {
-            await api.post('/models/download', { filename: newModelFilename, model_name: newModelName });
+            await api.post('/models/download', { model_name: newModelFilename });
             setNewModelName('');
             setNewModelFilename('');
             await fetchModels();
@@ -134,59 +132,55 @@ function Dashboard() {
     );
 
     return (
-        <>
-            <div className="dashboard-grid">
-                <div className="model-management">
-                    <h2>Model Management</h2>
-                    {managementError && <p className="error-message">{managementError}</p>}
-                    <form onSubmit={handleDownloadModel} className="download-form">
-                        <input type="text" value={newModelName} onChange={(e) => setNewModelName(e.target.value)} placeholder="Custom Model Name (Optional)" />
-                        <input type="text" value={newModelFilename} onChange={(e) => setNewModelFilename(e.target.value)} placeholder="GPT4All Model Filename" required />
-                        <button type="submit" disabled={isDownloading}>{isDownloading ? 'Downloading...' : 'Download'}</button>
-                    </form>
-                    <h3 style={{marginTop: '1.5rem'}}>Available Models</h3>
-                    <input type="text" placeholder="Search models..." className="search-bar" value={modelSearchTerm} onChange={(e) => setModelSearchTerm(e.target.value)} />
-                    <ul className="model-list">
-                        {filteredModels.map(model => (
-                            <li key={model.id} className={`model-list-item ${selectedModel?.id === model.id ? 'selected' : ''}`} onClick={() => setSelectedModel(model)}>
-                                {model.name}
+        <div className="dashboard-grid">
+            <div className="model-management">
+                <h2>Model Management</h2>
+                {managementError && <p className="error-message">{managementError}</p>}
+                <form onSubmit={handleDownloadModel} className="download-form">
+                    <input type="text" value={newModelFilename} onChange={(e) => setNewModelFilename(e.target.value)} placeholder="Hugging Face Model Name" required />
+                    <button type="submit" disabled={isDownloading}>{isDownloading ? 'Downloading...' : 'Download'}</button>
+                </form>
+                <h3 style={{marginTop: '1.5rem'}}>Available Models</h3>
+                <input type="text" placeholder="Search models..." className="search-bar" value={modelSearchTerm} onChange={(e) => setModelSearchTerm(e.target.value)} />
+                <ul className="model-list">
+                    {filteredModels.map(model => (
+                        <li key={model.id} className={`model-list-item ${selectedModel?.id === model.id ? 'selected' : ''}`} onClick={() => setSelectedModel(model)}>
+                            {model.name}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+            <div className="chat-interface">
+                <div className="conversation-sidebar">
+                    <div className="new-chat-button">
+                        <button onClick={handleNewChat}>+ New Chat</button>
+                    </div>
+                    <ul className="conversation-list">
+                        {conversations.map(conv => (
+                            <li key={conv.id} className={`conversation-list-item ${activeConversationId === conv.id ? 'selected' : ''}`} onClick={() => handleSelectConversation(conv.id)}>
+                                <span>{conv.title}</span>
+                                <button className="delete-conv-button" onClick={(e) => handleDeleteConversation(e, conv.id)}>X</button>
                             </li>
                         ))}
                     </ul>
                 </div>
-                <div className="chat-interface">
-                    <div className="conversation-sidebar">
-                        <div className="new-chat-button">
-                            <button onClick={handleNewChat}>+ New Chat</button>
-                        </div>
-                        <ul className="conversation-list">
-                            {conversations.map(conv => (
-                                <li key={conv.id} className={`conversation-list-item ${activeConversationId === conv.id ? 'selected' : ''}`} onClick={() => handleSelectConversation(conv.id)}>
-                                    <span>{conv.title}</span>
-                                    <button className="delete-conv-button" onClick={(e) => handleDeleteConversation(e, conv.id)}>X</button>
-                                </li>
-                            ))}
-                        </ul>
+                <div className="chat-window">
+                    {chatError && <p className="error-message">{chatError}</p>}
+                    <div className="chat-history">
+                        {chatHistory.map((msg, index) => (
+                            <div key={index} className={`chat-message ${msg.role}`}>
+                               <div className="message-bubble">{msg.content}</div>
+                            </div>
+                        ))}
+                         {isGenerating && <div className="loading-message">Thinking...</div>}
                     </div>
-                    <div className="chat-window">
-                        {chatError && <p className="error-message">{chatError}</p>}
-                        <div className="chat-history">
-                            {chatHistory.map((msg, index) => (
-                                <div key={index} className={`chat-message ${msg.role}`}>
-                                   <div className="message-bubble">{msg.content}</div>
-                                </div>
-                            ))}
-                             {isGenerating && <div className="loading-message">Thinking...</div>}
-                        </div>
-                        <form onSubmit={handleChatSubmit}>
-                            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={selectedModel ? `Chat with ${selectedModel.name}...` : 'Select a model to start chatting'} disabled={!selectedModel || isGenerating} />
-                            <button type="submit" disabled={!selectedModel || isGenerating}>Send</button>
-                        </form>
-                    </div>
+                    <form onSubmit={handleChatSubmit}>
+                        <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={selectedModel ? `Chat with ${selectedModel.name}...` : 'Select a model to start chatting'} disabled={!selectedModel || isGenerating} />
+                        <button type="submit" disabled={!selectedModel || isGenerating}>Send</button>
+                    </form>
                 </div>
             </div>
-            <TrainingDashboard models={models} />
-        </>
+        </div>
     );
 }
 
